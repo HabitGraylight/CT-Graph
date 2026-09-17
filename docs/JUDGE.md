@@ -85,3 +85,8 @@
 - 旧知识按 SHA-256 存于 `data/knowledge/history/`，保留审核日志；发布采用完整文件原子替换，随后请求读取新版本。候选不能产生无依据的数值加减分。用户口味记录永不直接提升成公共科学事实。
 
 接口请求见 [JUDGE_REQUESTS.md](JUDGE_REQUESTS.md)。
+
+
+### 工艺后的浓度边界
+
+`context.process` 记录加工与服务状态，详见 [接口](JUDGE_REQUESTS.md#工艺状态--process-state)。整杯澄清（含奶洗）后，`composition.estimates` 的浓度为空，投料情景另存 `input_scenario_estimates`。以原料类别触发的机制不是成品成分测量。实际反馈仍可支持对照候选，单靠投料比例不再自动优化整杯澄清的糖酸。

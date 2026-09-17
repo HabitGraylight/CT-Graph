@@ -49,3 +49,12 @@ Use a staged workflow: locate, retrieve, inspect the original page, write an ato
 Keep source hashes, PDF and printed page numbers, evidence type, scope and review decisions locally. Scans remain explicitly unsearchable until visually reviewed or processed with verified OCR. Books and extracted content are never published.
 
 The runtime exposes six root families and conditional design prompts through `catalog.design_knowledge` and `judge.design_review`. These prompts do not change sensory scores. Ingredient similarity generates hypotheses; actual tasting is still needed.
+
+
+## 工艺进入检查层 / Process-aware checks
+
+现在区分原料投料状态、整杯处理和服务方式。新增条件检查涵盖：粗滤与澄清的区别、澄清后的成分保留边界、加工原料替换、摇和泡沫、批量预调、气泡目标与杯中风味演变。详见 [结构化请求](JUDGE_REQUESTS.md#工艺状态--process-state)。
+
+参考原页：Liquid Intelligence 中文版印刷页 71–72、82–83、213–216、266–268；Cocktail Codex 中文版印刷页 105、249；风味搭配书中文版印刷页 25、35。它们支持条件提示，不提供通用最佳摇和秒数、气泡强度或加工后的浓度。书中数值和作者偏好不自动转成阈值。
+
+Process checks separate ingredient preparation, whole-drink transformation and service. They retain uncertainty about composition, foam and sensory outcomes. There are no fitted causal coefficients or automatic quality bonuses for clarity, small bubbles or complexity.

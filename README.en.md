@@ -29,6 +29,8 @@
 
 The six root families organize knowledge separately from the twelve scoring templates. Flip is a knowledge node only; it has no executable scoring template yet.
 
+**Process-aware review:** clarification, batching, carbonation and service now inform checks. Final concentration after whole-drink clarification stays unknown; input estimates remain traceable. See the [request interface](docs/JUDGE_REQUESTS.md#工艺状态--process-state).
+
 ## Quick start
 
 Python 3.10+ is required. The core advisor needs no API key and runs offline.

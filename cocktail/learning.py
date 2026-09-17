@@ -127,6 +127,8 @@ def improve(frame=None,recipe=None,method=None,context=None,feedback_id=None,avo
         descriptors=feedback['input']['tasting'].get('descriptors',[])
     before=evaluate(frame or 'sour',recipe or '',method,context)
     if feedback and before['judge']['recipe_id']!=feedback['input']['recipe_id']:raise ValueError('当前配方/技法/条件与该反馈记录不一致，请使用记录原版')
+    if not feedback and before['judge']['composition']['process_stage']=='whole_drink_transformation':
+        return {'blocked':True,'reason':'整杯澄清后的成分保留未知，不能只按投料比例自动减糖或减酸。先记录工艺和真实试饮，再提出单变量对照。','before':before}
     items=before['items'];snap=before['judge']['snapshot'];slots,_=assign(get_frame(before['frame_id']),items)
     excluded=parse_items(avoid)
     if any(i['status']!='matched' for i in excluded):raise ValueError('排除原料需先消除歧义')

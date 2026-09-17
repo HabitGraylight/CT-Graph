@@ -32,7 +32,7 @@ def number(value, label, low, high):
 def validate_context(value=None):
     c={} if value is None else value
     if not isinstance(c,dict):raise ValueError('context 需要是对象')
-    allowed={'intent','appearance_target','texture_target','theme','garnish','glass_chilled','dilution_ml','temperature_c','final_ph','composition'}
+    allowed={'intent','appearance_target','texture_target','theme','garnish','glass_chilled','dilution_ml','temperature_c','final_ph','composition','process'}
     if set(c)-allowed:raise ValueError('不支持的 context 字段：'+','.join(sorted(set(c)-allowed)))
     for k,choices in [('intent',{'classic','original','milk_clarified'}),('appearance_target',{'clear','cloudy','foam','any'}),('texture_target',{'silky','light','foamy','sparkling','any'})]:
         if k in c and c[k] not in choices:raise ValueError(k+' 选项无效')
@@ -41,6 +41,25 @@ def validate_context(value=None):
     if 'glass_chilled' in c and type(c['glass_chilled']) is not bool:raise ValueError('glass_chilled 需为布尔值')
     for k,lo,hi in [('dilution_ml',0,5000),('temperature_c',-30,100),('final_ph',0,14)]:
         if k in c:number(c[k],k,lo,hi)
+    process=c.get('process',{})
+    if not isinstance(process,dict) or set(process)-{'clarification','carbonation','service','batched','preparations'}:
+        raise ValueError('process 字段无效')
+    for k,choices in [('clarification',{'none','strained','whole_drink'}),('carbonation',{'none','top_up','force'}),('service',{'up','on_ice'})]:
+        if k in process and (not isinstance(process[k],str) or process[k] not in choices):raise ValueError('process.'+k+' 选项无效')
+    if 'batched' in process and type(process['batched']) is not bool:raise ValueError('process.batched 需为布尔值')
+    if c.get('intent')=='milk_clarified' and process.get('clarification') in {'none','strained'}:
+        raise ValueError('奶洗澄清与 process.clarification 冲突')
+    preparations=process.get('preparations',[])
+    if not isinstance(preparations,list) or len(preparations)>80:raise ValueError('preparations 需要是最多 80 项的列表')
+    prepared_ids=set()
+    for entry in preparations:
+        if not isinstance(entry,dict) or set(entry)!={'name','state'} or not isinstance(entry.get('name'),str):raise ValueError('preparations 需提供 name 与 state')
+        if not isinstance(entry['state'],str) or entry['state'] not in {'fresh','heated','infused','fermented','clarified'}:raise ValueError('原料加工状态无效')
+        resolved=resolve(entry['name'])
+        if resolved['status']!='matched':raise ValueError('加工原料须先消除歧义')
+        key=resolved['ingredient']['id']
+        if key in prepared_ids:raise ValueError('同一原料只能声明一个当前加工状态')
+        prepared_ids.add(key)
     composition=c.get('composition',[])
     if not isinstance(composition,list) or len(composition)>80:raise ValueError('composition 需要是最多 80 项的列表')
     ids=set()
@@ -74,6 +93,8 @@ def composition_report(items, context):
     specs={resolve(e['name'])['ingredient']['id']:e for e in context.get('composition',[])}
     known={i['ingredient']['id'] for i in items if i['status']=='matched'}
     if specs.keys()-known:raise ValueError('成分数据引用了当前配方中没有的原料')
+    preparations=context.get('process',{}).get('preparations',[])
+    if {resolve(e['name'])['ingredient']['id'] for e in preparations}-known:raise ValueError('加工状态引用了当前配方中没有的原料')
     nonliquid={'garnish','ice','herb','fruit','seasoning','solid_sweet'}
     liquids=[i for i in items if i['status']!='matched' or not set(i['ingredient']['roles'])&nonliquid]
     missing_volume=[i['name'] for i in liquids if i['ml'] is None]
@@ -98,6 +119,15 @@ def composition_report(items, context):
         output['estimates'][metric]={'value':round(numerator/final_volume,3) if liquids and not missing and final_volume>0 else None,
               'unit':unit,'stage':'已声明额外水量的情景估算' if dilution is not None else '融冰前估算',
               'missing':missing,'assumed_ingredients':assumed,'inputs':context.get('composition',[])}
+    transformed=context.get('intent')=='milk_clarified' or context.get('process',{}).get('clarification')=='whole_drink'
+    output['process_stage']='whole_drink_transformation' if transformed else 'mixing_scenario'
+    if transformed:
+        output['input_scenario_estimates']=output['estimates']
+        output['estimates']={k:{**v,'value':None,'stage':'整杯澄清后未知，需成品测量',
+            'missing':v['missing']+['工艺后各成分保留率或成品测量']} for k,v in output['estimates'].items()}
+        output['note']+=' 整杯澄清后的成分保留尚未建模；投料情景单独保留，不能只凭出液量反推浓度。'
+    if preparations:
+        output['note']+=' composition 数值必须对应实际投料的加工后原料，原料名称不能保证浓度或香气谱不变。'
     return output
 
 
@@ -112,6 +142,8 @@ def review(evaluation, method=None, context=None):
         r=dict(rule)
         r['triggered_by']={comp:[p['name'] for p in used if comp in p['component_ids']] for comp in rule['requires']}
         r['application']='工艺目标：聚集后过滤，成品是否澄清待验证' if rule['id']=='milk_acid' and c.get('intent')=='milk_clarified' else '条件性提示，不代表反应已经发生'
+        if c.get('process',{}).get('preparations') or c.get('process',{}).get('clarification')=='whole_drink' or c.get('intent')=='milk_clarified':
+            r['application']+='；依据投料类别触发，加工后的成分保留与反应状态未实测'
         interactions.append(r)
     risks=[]
     def risk(id,text,dims,level='watch',refs=None):risks.append({'id':id,'message':text,'dimensions':dims,'level':level,'source_ids':refs or []})
@@ -120,7 +152,7 @@ def review(evaluation, method=None, context=None):
             risk('slot_'+check['slot'],check['label']+'：'+{'high':'相对框架偏多','low':'相对框架偏少','missing':'缺少'}[check['state']],['balance','structure'],'design',[])
     if 'co2' in components and method=='shake':risk('shake_carbonated','气泡料应在无气部分摇和完成后加入；当前整杯摇和方案需调整。',['execution','texture'],'action',['co2'])
     if 'casein' in components and 'organic_acids' in components and c.get('intent')!='milk_clarified':risk('curdling_check','牛乳与酸同用：先小样检查絮凝，确认是否需要澄清工艺。',['appearance','texture'],'watch',['casein'])
-    if c.get('appearance_target')=='clear' and components&{'egg_protein','suspended_solids','casein'}:risk('clarity_target','当前材料可能带入泡沫或悬浮物；要清澈外观需说明过滤/澄清方案。',['appearance'],'watch',['iba_sour'])
+    if c.get('appearance_target')=='clear' and components&{'egg_protein','suspended_solids','casein'}:risk('clarity_target','投料可能带入泡沫或悬浮物；已有加工记录也需核对成品清澈度，清澈不等于无色。',['appearance'],'watch',['iba_sour'])
     if c.get('intent')=='milk_clarified':risk('clarified_unmodeled','奶洗会改变成分保留与体积，当前计算只适用于过滤前投料。',['balance','texture'],'watch',['casein'])
     has_unknown=any(i['status']!='matched' for i in items)
     if has_unknown:risk('unresolved','未识别原料可能引入额外机制；当前化学检查不完整。',[id for id,_,_ in DIMENSIONS],'information')

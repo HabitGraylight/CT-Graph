@@ -5,10 +5,17 @@ function judgeContext(){
   const c={...judgeExtraContext,intent:$('judge-intent').value,appearance_target:$('judge-appearance').value};
   if($('judge-theme').value.trim())c.theme=$('judge-theme').value.trim();
   for(const [input,key] of [['judge-water','dilution_ml'],['judge-temperature','temperature_c']])if($(input).value!=='')c[key]=Number($(input).value);
+  const process={...(c.process||{})};
+  for(const key of ['clarification','service','carbonation','batched']){
+    const value=$('judge-'+key).value;
+    if(value==='')delete process[key];else process[key]=key==='batched'?value==='true':value;
+  }
+  if(Object.keys(process).length)c.process=process;else delete c.process;
   return c;
 }
 function restoreJudgeContext(c={}){
   judgeExtraContext={...c};for(const key of ['intent','appearance_target','theme','dilution_ml','temperature_c'])delete judgeExtraContext[key];
+  for(const key of ['clarification','service','carbonation','batched'])$('judge-'+key).value=c.process?.[key]===undefined?'':String(c.process[key]);
   $('judge-intent').value=c.intent||'classic';$('judge-appearance').value=c.appearance_target||'any';
   $('judge-theme').value=c.theme||'';$('judge-water').value=c.dilution_ml??'';$('judge-temperature').value=c.temperature_c??'';
 }

@@ -16,6 +16,9 @@
 
 [快速开始](#快速开始) · [能力与边界](#能力与边界) · [知识方法](docs/BOOK_METHODS.md) · [路线图](docs/ROADMAP.md) · [参与贡献](CONTRIBUTING.md)
 
+
+**工艺状态检查**：支持澄清、预调、气泡与出杯方式；整杯澄清后的浓度保留未知，投料估算单独追溯。见 [接口说明](docs/JUDGE_REQUESTS.md#工艺状态--process-state)。
+
 ## 能力与边界
 
 | 能力 | 已实现 | 边界 |

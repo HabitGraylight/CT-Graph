@@ -118,3 +118,37 @@ python -X utf8 scripts/advise.py --request data/work/advisor-request.json --comp
 ```
 
 `knowledge_note` 只是待审证据。维护知识版本的审核发布步骤见 [JUDGE.md](JUDGE.md)。
+
+
+## 工艺状态 / Process state
+
+可选 `context.process` 参与评价、补全、改进和试饮快照。省略代表未知。
+
+```json
+{
+  "action": "judge",
+  "frame": "sour",
+  "recipe": "gin 45ml, lemon juice 25ml, simple syrup 20ml",
+  "method": "shake",
+  "context": {
+    "process": {
+      "clarification": "strained",
+      "carbonation": "none",
+      "service": "up",
+      "batched": true,
+      "preparations": [{"name": "lemon juice", "state": "clarified"}]
+    }
+  }
+}
+```
+
+- `clarification`：`none` 无整杯澄清、`strained` 仅滤冰/粗果肉、`whole_drink` 整杯澄清。预先澄清的一种原料记在 preparations，不要记成整杯澄清。
+- `carbonation`：`none`、`top_up` 后加气泡料、`force` 整杯充气。它只说明方案，不证明已达到某个 CO₂ 浓度，不提供设备压力指令。
+- `service`：`up` 无冰出杯、`on_ice` 杯中留冰；`batched` 必须为布尔值。
+- `preparations`：最多 80 项，每项为配方中已识别且不重复的 name 和当前 state（`fresh`、`heated`、`infused`、`fermented`、`clarified`）。这是投料状态标签，不是完整工艺序列；多步过程尚需另行记录。
+
+composition 数值必须对应实际投料状态，不能把鲜汁数值冒充加工后实测。整杯澄清或兼容字段 `intent: milk_clarified` 会将 `composition.estimates` 标为工艺后未知；原来的混合情景存入 `input_scenario_estimates`，包括已声明额外水量。出液量不能单独确定溶质保留率。未声明整杯转化时，原浓度计算仍是近似情景，不能当作实测。
+
+整杯澄清的无反馈自动改进会暂停，要求真实试饮；有反馈时仍只产生单变量候选，不预测味觉收益。网页支持整杯处理、气泡、服务与预调选择；具体原料状态可通过 JSON 提供，并随载入快照保留。
+
+**English:** `context.process` records preparation and service conditions without inventing sensory scores. Whole-drink clarification invalidates final concentration estimates; the input scenario remains separately available. Ingredient-level preparation describes the material actually dosed, not a processing sequence. Missing fields mean unknown. Recipe-only auto-tuning is blocked after unmodeled whole-drink clarification; real tasting can support a controlled trial.
