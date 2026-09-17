@@ -5,6 +5,7 @@ import math
 from datetime import date, timedelta
 from .knowledge import ROOT
 from .normalization import resolve
+from . import design
 
 DIMENSIONS = [
     ('appearance','外观','风格所需的清澈、色泽、泡沫和装饰是否实现？'),
@@ -146,6 +147,7 @@ def review(evaluation, method=None, context=None):
     source_ids={s for r in interactions+risks for s in r['source_ids']}|{'usbg2025','iba_martini','iba_sour'}
     snapshot=recipe_snapshot({**evaluation,'method':method},c)
     return {'version':kb['version'],'knowledge_hash':hashlib.sha256(json.dumps(kb,sort_keys=True,ensure_ascii=False).encode()).hexdigest(),
+        'design_review':design.review({**evaluation,'method':method},c),
         'recipe_id':fingerprint(snapshot),'snapshot':snapshot,'dimensions':dimensions,'sensory_total':None,
         'verdict':'资料不足，需先澄清原料与用量' if evaluation['score'] is None else '存在需要调整或试验的设计问题' if risks else '可作为试饮候选，尚无真实口味验证',
         'scoring_policy':'七项实际品鉴各 0–10 分；全部实填才汇总 /70。设计代理分不合成感官总分，机制不自动加减分。',

@@ -9,3 +9,7 @@
 ## GitHub 发布与隐私
 
 仓库只发布 public-files.json 中审核过的方法、代码、文档和合成示例。data/、output/、tmp/、私人配方、酒单、库存、试饮、请求与生成物全部保留本地，禁止写入提交、历史、Issue、PR 或日志。公共代码与测试中也不能复制个人内容。新增文件默认不发布，提交和推送前运行 scripts/check_publication.py，并人工检查差异；不能用 git add -f 绕过隔离。参见 docs/PRIVACY.md。
+
+## 参考书与知识吸收
+
+书库位于本地 data/ 内，使用 scripts/book_library.py 按 PDF 页检索；扫描件需视觉核对。已有本地阅读记录在 data/knowledge/books/READING_REPORT.md 与 reviewed_claims.json。区分全文提取、定向阅读与已审断言，不宣称已通读。来源页序、版本哈希、条件与采纳决定本地保留；公开方法见 docs/BOOK_METHODS.md。个人阅读笔记不得自动提升为公共规则。

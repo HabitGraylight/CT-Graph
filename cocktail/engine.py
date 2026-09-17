@@ -208,8 +208,9 @@ def complete(frame_id,value='',pantry='',avoid='',preference='balanced',context=
             'personal_preference':personal,'refinement':refinement}
 
 def catalog():
+    from . import design
     stats=json.loads((ROOT/'data/aligned/stats.json').read_text(encoding='utf-8'))
-    return {'frameworks':FRAMEWORKS,'ingredients':INGREDIENTS,'methods':METHODS,'stats':stats,
+    return {'design_knowledge':design.catalog(),'frameworks':FRAMEWORKS,'ingredients':INGREDIENTS,'methods':METHODS,'stats':stats,
             'comparison_groups':[{'name':c['name'],'name_key':c['name_key'],'versions':len(c['version_ids'])} for c in comparisons()]}
 
 def compare(name):

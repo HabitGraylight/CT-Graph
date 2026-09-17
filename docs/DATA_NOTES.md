@@ -77,3 +77,17 @@ IBA 中 50 行尚未可靠拆分，使用 `HAS_UNPARSED_INGREDIENT` 指向 `ingr
 ## 验证边界
 
 `scripts/validate.py` 检查数据结构、出处、哈希、公制换算、官方配方解析和本地检索。它不验证所有历史事实、味觉标签或配方可口程度，也不判断网站内容的最终复用权限。
+
+## 从干净克隆建立本地语料
+
+以下需要网络并遵守上述来源条款；所有生成数据仅本地保存。
+
+```sh
+python scripts/collect.py
+python scripts/collect_pages.py
+python scripts/collect_book.py
+python scripts/collect_iba.py
+python scripts/build_data.py
+python scripts/validate.py
+python scripts/align_data.py
+```
