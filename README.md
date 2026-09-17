@@ -41,7 +41,7 @@ python scripts/init_local.py
 python server.py --port 8765
 ```
 
-打开 **http://127.0.0.1:8765**。初始化不会覆盖已有数据，也不会下载语料。当前工作台界面为中文；英文项目介绍见 [English](README.en.md)。
+打开 [http://127.0.0.1:8765](http://127.0.0.1:8765)。初始化不会覆盖已有数据，也不会下载语料。当前工作台界面为中文；英文项目介绍见 [English](README.en.md)。
 
 ### 直接调用建议引擎
 

@@ -41,7 +41,7 @@ python scripts/init_local.py
 python server.py --port 8765
 ```
 
-Open **http://127.0.0.1:8765**. Initialization preserves existing data and downloads no corpus. The workbench UI is currently Chinese; this page is the English project introduction.
+Open [http://127.0.0.1:8765](http://127.0.0.1:8765). Initialization preserves existing data and downloads no corpus. The workbench UI is currently Chinese; this page is the English project introduction.
 
 ### Use the advisor directly
 
