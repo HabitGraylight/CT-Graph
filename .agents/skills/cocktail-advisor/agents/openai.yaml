@@ -1,0 +1,6 @@
+interface:
+  display_name: "调酒配方顾问"
+  short_description: "依据传统配方与本地原料词典，评分、补全鸡尾酒并解释品牌与配料差异"
+  default_prompt: "使用 $cocktail-advisor，按我选的框架和现有原料评价或补全鸡尾酒配方，并解释调整依据。"
+policy:
+  allow_implicit_invocation: true

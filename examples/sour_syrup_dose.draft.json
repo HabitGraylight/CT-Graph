@@ -1,0 +1,611 @@
+{
+  "schema_version": "draft-1",
+  "model_id": "causal:sour_syrup_dose",
+  "version": "2026-09-16.draft-1",
+  "status": "hypothesis_unfitted_not_for_production_inference",
+  "description": "Sour 原味糖浆剂量的局部机制假设；不是完整鸡尾酒因果图。",
+  "knowledge_version": "2026-09-15.1",
+  "unit_of_analysis": {
+    "serving": "一次实际出杯",
+    "observation": "一个品鉴者在一个规定时间点对该杯的记录",
+    "independence_note": "同杯、同人、同会话记录可能相关；不能直接视作独立样本。"
+  },
+  "causal_question": "在同一基础 Sour 配方和声明的制作、品鉴方案下，改变糖浆剂量如何影响报告的总体喜欢程度？",
+  "variables": [
+    {
+      "id": "syrup_dose_ml",
+      "label": "原味糖浆用量",
+      "unit": "ml",
+      "role": "treatment",
+      "observability": "planned_measurement"
+    },
+    {
+      "id": "syrup_sugar_g_l",
+      "label": "本批糖浆糖浓度",
+      "unit": "g/L",
+      "role": "pre_treatment_parameter",
+      "observability": "requires_label_or_measurement"
+    },
+    {
+      "id": "other_liquid_ml",
+      "label": "其余液体配料体积",
+      "unit": "ml",
+      "role": "pre_treatment_parameter",
+      "observability": "planned_measurement"
+    },
+    {
+      "id": "additional_water_ml",
+      "label": "配方之外明确加入的水",
+      "unit": "ml",
+      "role": "controlled_setting",
+      "observability": "planned_measurement"
+    },
+    {
+      "id": "other_sugar_g",
+      "label": "其余原料的糖质量",
+      "unit": "g",
+      "role": "pre_treatment_parameter",
+      "observability": "requires_composition_measurements"
+    },
+    {
+      "id": "ethanol_ml",
+      "label": "投料的乙醇体积当量",
+      "unit": "ml",
+      "role": "pre_treatment_parameter",
+      "observability": "requires_composition_measurements"
+    },
+    {
+      "id": "acid_equivalent_g",
+      "label": "投料酸当量，以柠檬酸计",
+      "unit": "g",
+      "role": "pre_treatment_parameter",
+      "observability": "requires_titration_or_explicit_assumption"
+    },
+    {
+      "id": "total_volume_ml",
+      "label": "混合后近似体积",
+      "unit": "ml",
+      "role": "mediator",
+      "observability": "derived_approximation"
+    },
+    {
+      "id": "sugar_mass_g",
+      "label": "混合糖质量",
+      "unit": "g",
+      "role": "mediator",
+      "observability": "derived"
+    },
+    {
+      "id": "sugar_g_l",
+      "label": "最终糖浓度",
+      "unit": "g/L",
+      "role": "mediator",
+      "observability": "derived_or_measured"
+    },
+    {
+      "id": "acid_g_l",
+      "label": "最终可滴定酸度，以柠檬酸计",
+      "unit": "g/L",
+      "role": "mediator",
+      "observability": "derived_or_measured"
+    },
+    {
+      "id": "abv",
+      "label": "最终近似酒精度",
+      "unit": "% vol",
+      "role": "mediator",
+      "observability": "derived_approximation"
+    },
+    {
+      "id": "serving_temperature_c",
+      "label": "评价时液体温度",
+      "unit": "degC",
+      "role": "controlled_context",
+      "observability": "planned_measurement"
+    },
+    {
+      "id": "elapsed_seconds",
+      "label": "出杯后时间",
+      "unit": "s",
+      "role": "controlled_context",
+      "observability": "planned_measurement"
+    },
+    {
+      "id": "baseline_taste_profile",
+      "label": "品鉴前的偏好与敏感性",
+      "unit": "trait_vector",
+      "role": "possible_common_cause",
+      "observability": "partly_unobserved"
+    },
+    {
+      "id": "sweetness_intensity",
+      "label": "报告的甜感强度",
+      "unit": "ordinal_0_10",
+      "role": "sensory_mediator",
+      "observability": "planned_user_observation"
+    },
+    {
+      "id": "sourness_intensity",
+      "label": "报告的酸感强度",
+      "unit": "ordinal_0_10",
+      "role": "sensory_mediator",
+      "observability": "planned_user_observation"
+    },
+    {
+      "id": "alcohol_burn",
+      "label": "报告的酒精刺激强度",
+      "unit": "ordinal_0_10",
+      "role": "sensory_mediator",
+      "observability": "planned_user_observation"
+    },
+    {
+      "id": "other_sensory_response",
+      "label": "其他可能变化的香气与质地",
+      "unit": "sensory_vector",
+      "role": "sensory_mediator",
+      "observability": "partly_unobserved"
+    },
+    {
+      "id": "overall_liking",
+      "label": "总体喜欢程度",
+      "unit": "ordinal_0_10",
+      "role": "outcome",
+      "observability": "planned_user_observation"
+    }
+  ],
+  "edges": [
+    {
+      "source": "syrup_dose_ml",
+      "target": "total_volume_ml",
+      "basis": "approximate_volume_accounting",
+      "source_ids": [],
+      "effect_size": null,
+      "note": "草案路径；不表示已经从鸡尾酒试饮中识别或估计效应。"
+    },
+    {
+      "source": "other_liquid_ml",
+      "target": "total_volume_ml",
+      "basis": "approximate_volume_accounting",
+      "source_ids": [],
+      "effect_size": null,
+      "note": "草案路径；不表示已经从鸡尾酒试饮中识别或估计效应。"
+    },
+    {
+      "source": "additional_water_ml",
+      "target": "total_volume_ml",
+      "basis": "approximate_volume_accounting",
+      "source_ids": [],
+      "effect_size": null,
+      "note": "草案路径；不表示已经从鸡尾酒试饮中识别或估计效应。"
+    },
+    {
+      "source": "syrup_dose_ml",
+      "target": "sugar_mass_g",
+      "basis": "mass_accounting",
+      "source_ids": [],
+      "effect_size": null,
+      "note": "草案路径；不表示已经从鸡尾酒试饮中识别或估计效应。"
+    },
+    {
+      "source": "syrup_sugar_g_l",
+      "target": "sugar_mass_g",
+      "basis": "mass_accounting",
+      "source_ids": [],
+      "effect_size": null,
+      "note": "草案路径；不表示已经从鸡尾酒试饮中识别或估计效应。"
+    },
+    {
+      "source": "other_sugar_g",
+      "target": "sugar_mass_g",
+      "basis": "mass_accounting",
+      "source_ids": [],
+      "effect_size": null,
+      "note": "草案路径；不表示已经从鸡尾酒试饮中识别或估计效应。"
+    },
+    {
+      "source": "sugar_mass_g",
+      "target": "sugar_g_l",
+      "basis": "concentration_definition",
+      "source_ids": [],
+      "effect_size": null,
+      "note": "草案路径；不表示已经从鸡尾酒试饮中识别或估计效应。"
+    },
+    {
+      "source": "total_volume_ml",
+      "target": "sugar_g_l",
+      "basis": "concentration_definition",
+      "source_ids": [],
+      "effect_size": null,
+      "note": "草案路径；不表示已经从鸡尾酒试饮中识别或估计效应。"
+    },
+    {
+      "source": "acid_equivalent_g",
+      "target": "acid_g_l",
+      "basis": "concentration_definition",
+      "source_ids": [],
+      "effect_size": null,
+      "note": "草案路径；不表示已经从鸡尾酒试饮中识别或估计效应。"
+    },
+    {
+      "source": "total_volume_ml",
+      "target": "acid_g_l",
+      "basis": "concentration_definition",
+      "source_ids": [],
+      "effect_size": null,
+      "note": "草案路径；不表示已经从鸡尾酒试饮中识别或估计效应。"
+    },
+    {
+      "source": "ethanol_ml",
+      "target": "abv",
+      "basis": "approximate_concentration_definition",
+      "source_ids": [],
+      "effect_size": null,
+      "note": "草案路径；不表示已经从鸡尾酒试饮中识别或估计效应。"
+    },
+    {
+      "source": "total_volume_ml",
+      "target": "abv",
+      "basis": "approximate_concentration_definition",
+      "source_ids": [],
+      "effect_size": null,
+      "note": "草案路径；不表示已经从鸡尾酒试饮中识别或估计效应。"
+    },
+    {
+      "source": "sugar_g_l",
+      "target": "sweetness_intensity",
+      "basis": "mechanism_informed_hypothesis",
+      "source_ids": [
+        "sweet_sour"
+      ],
+      "effect_size": null,
+      "note": "草案路径；不表示已经从鸡尾酒试饮中识别或估计效应。"
+    },
+    {
+      "source": "acid_g_l",
+      "target": "sweetness_intensity",
+      "basis": "mechanism_informed_hypothesis",
+      "source_ids": [
+        "sweet_sour"
+      ],
+      "effect_size": null,
+      "note": "草案路径；不表示已经从鸡尾酒试饮中识别或估计效应。"
+    },
+    {
+      "source": "sugar_g_l",
+      "target": "sourness_intensity",
+      "basis": "mechanism_informed_hypothesis",
+      "source_ids": [
+        "sweet_sour"
+      ],
+      "effect_size": null,
+      "note": "草案路径；不表示已经从鸡尾酒试饮中识别或估计效应。"
+    },
+    {
+      "source": "acid_g_l",
+      "target": "sourness_intensity",
+      "basis": "mechanism_informed_hypothesis",
+      "source_ids": [
+        "sweet_sour"
+      ],
+      "effect_size": null,
+      "note": "草案路径；不表示已经从鸡尾酒试饮中识别或估计效应。"
+    },
+    {
+      "source": "abv",
+      "target": "alcohol_burn",
+      "basis": "uncalibrated_domain_hypothesis",
+      "source_ids": [],
+      "effect_size": null,
+      "note": "草案路径；不表示已经从鸡尾酒试饮中识别或估计效应。"
+    },
+    {
+      "source": "serving_temperature_c",
+      "target": "alcohol_burn",
+      "basis": "uncalibrated_domain_hypothesis",
+      "source_ids": [],
+      "effect_size": null,
+      "note": "草案路径；不表示已经从鸡尾酒试饮中识别或估计效应。"
+    },
+    {
+      "source": "sugar_g_l",
+      "target": "other_sensory_response",
+      "basis": "omitted_path_placeholder_not_fitted",
+      "source_ids": [],
+      "effect_size": null,
+      "note": "草案路径；不表示已经从鸡尾酒试饮中识别或估计效应。"
+    },
+    {
+      "source": "abv",
+      "target": "other_sensory_response",
+      "basis": "omitted_path_placeholder_not_fitted",
+      "source_ids": [],
+      "effect_size": null,
+      "note": "草案路径；不表示已经从鸡尾酒试饮中识别或估计效应。"
+    },
+    {
+      "source": "serving_temperature_c",
+      "target": "other_sensory_response",
+      "basis": "omitted_path_placeholder_not_fitted",
+      "source_ids": [],
+      "effect_size": null,
+      "note": "草案路径；不表示已经从鸡尾酒试饮中识别或估计效应。"
+    },
+    {
+      "source": "elapsed_seconds",
+      "target": "other_sensory_response",
+      "basis": "omitted_path_placeholder_not_fitted",
+      "source_ids": [],
+      "effect_size": null,
+      "note": "草案路径；不表示已经从鸡尾酒试饮中识别或估计效应。"
+    },
+    {
+      "source": "serving_temperature_c",
+      "target": "sweetness_intensity",
+      "basis": "uncalibrated_domain_hypothesis",
+      "source_ids": [],
+      "effect_size": null,
+      "note": "草案路径；不表示已经从鸡尾酒试饮中识别或估计效应。"
+    },
+    {
+      "source": "elapsed_seconds",
+      "target": "sweetness_intensity",
+      "basis": "uncalibrated_domain_hypothesis",
+      "source_ids": [],
+      "effect_size": null,
+      "note": "草案路径；不表示已经从鸡尾酒试饮中识别或估计效应。"
+    },
+    {
+      "source": "serving_temperature_c",
+      "target": "sourness_intensity",
+      "basis": "uncalibrated_domain_hypothesis",
+      "source_ids": [],
+      "effect_size": null,
+      "note": "草案路径；不表示已经从鸡尾酒试饮中识别或估计效应。"
+    },
+    {
+      "source": "elapsed_seconds",
+      "target": "sourness_intensity",
+      "basis": "uncalibrated_domain_hypothesis",
+      "source_ids": [],
+      "effect_size": null,
+      "note": "草案路径；不表示已经从鸡尾酒试饮中识别或估计效应。"
+    },
+    {
+      "source": "baseline_taste_profile",
+      "target": "syrup_dose_ml",
+      "basis": "observational_selection_hypothesis",
+      "source_ids": [],
+      "effect_size": null,
+      "note": "草案路径；不表示已经从鸡尾酒试饮中识别或估计效应。"
+    },
+    {
+      "source": "baseline_taste_profile",
+      "target": "sweetness_intensity",
+      "basis": "individual_variation_hypothesis",
+      "source_ids": [],
+      "effect_size": null,
+      "note": "草案路径；不表示已经从鸡尾酒试饮中识别或估计效应。"
+    },
+    {
+      "source": "baseline_taste_profile",
+      "target": "sourness_intensity",
+      "basis": "individual_variation_hypothesis",
+      "source_ids": [],
+      "effect_size": null,
+      "note": "草案路径；不表示已经从鸡尾酒试饮中识别或估计效应。"
+    },
+    {
+      "source": "baseline_taste_profile",
+      "target": "alcohol_burn",
+      "basis": "individual_variation_hypothesis",
+      "source_ids": [],
+      "effect_size": null,
+      "note": "草案路径；不表示已经从鸡尾酒试饮中识别或估计效应。"
+    },
+    {
+      "source": "baseline_taste_profile",
+      "target": "other_sensory_response",
+      "basis": "individual_variation_hypothesis",
+      "source_ids": [],
+      "effect_size": null,
+      "note": "草案路径；不表示已经从鸡尾酒试饮中识别或估计效应。"
+    },
+    {
+      "source": "baseline_taste_profile",
+      "target": "overall_liking",
+      "basis": "individual_variation_hypothesis",
+      "source_ids": [],
+      "effect_size": null,
+      "note": "草案路径；不表示已经从鸡尾酒试饮中识别或估计效应。"
+    },
+    {
+      "source": "sweetness_intensity",
+      "target": "overall_liking",
+      "basis": "preference_function_unfitted",
+      "source_ids": [],
+      "effect_size": null,
+      "note": "草案路径；不表示已经从鸡尾酒试饮中识别或估计效应。"
+    },
+    {
+      "source": "sourness_intensity",
+      "target": "overall_liking",
+      "basis": "preference_function_unfitted",
+      "source_ids": [],
+      "effect_size": null,
+      "note": "草案路径；不表示已经从鸡尾酒试饮中识别或估计效应。"
+    },
+    {
+      "source": "alcohol_burn",
+      "target": "overall_liking",
+      "basis": "preference_function_unfitted",
+      "source_ids": [],
+      "effect_size": null,
+      "note": "草案路径；不表示已经从鸡尾酒试饮中识别或估计效应。"
+    },
+    {
+      "source": "other_sensory_response",
+      "target": "overall_liking",
+      "basis": "preference_function_unfitted",
+      "source_ids": [],
+      "effect_size": null,
+      "note": "草案路径；不表示已经从鸡尾酒试饮中识别或估计效应。"
+    }
+  ],
+  "deterministic_mechanisms": [
+    {
+      "output": "total_volume_ml",
+      "expression_documentation": "other_liquid_ml + syrup_dose_ml + additional_water_ml",
+      "assumption": "近似体积可加；无过滤、蒸发、固体溶解或继续融冰。"
+    },
+    {
+      "output": "sugar_mass_g",
+      "expression_documentation": "other_sugar_g + syrup_dose_ml * syrup_sugar_g_l / 1000",
+      "assumption": "糖浆浓度与剂量为同一批次的明确值，无糖损失。"
+    },
+    {
+      "output": "sugar_g_l",
+      "expression_documentation": "sugar_mass_g * 1000 / total_volume_ml",
+      "assumption": "total_volume_ml > 0"
+    },
+    {
+      "output": "acid_g_l",
+      "expression_documentation": "acid_equivalent_g * 1000 / total_volume_ml",
+      "assumption": "原味糖浆与补充水不贡献可滴定酸度，统一柠檬酸当量口径；不代表 pH。"
+    },
+    {
+      "output": "abv",
+      "expression_documentation": "ethanol_ml * 100 / total_volume_ml",
+      "assumption": "原味糖浆和补充水无乙醇；忽略混合体积收缩。"
+    }
+  ],
+  "sensory_mechanisms": {
+    "fitted": false,
+    "parameters": null,
+    "posterior": null,
+    "training_dataset": null,
+    "restriction": "ordinal_0_10 是量表定义，是否按等距数值建模需另行论证。"
+  },
+  "identification": {
+    "status": "not_assessed",
+    "observational_adjustment_set": null,
+    "reason": "当前没有试饮样本；品鉴前偏好可能同时影响用量选择与评价，且部分感官路径和背景变量未完全展开。",
+    "planned_strategy": "明确干预后，使用同一人会话内随机顺序的配对比较，并记录批次、实际操作、顺序、时间与偏离。",
+    "mediator_warning": "估计总效果时，不机械把甜感、酸感或浓度中介当作待控制的混杂因素。"
+  },
+  "interventions": [
+    {
+      "id": "direct_dose_reduction",
+      "control": {
+        "syrup_dose_ml": 20
+      },
+      "treatment": {
+        "syrup_dose_ml": 17.5
+      },
+      "interpretation": "其余投料与明确额外水量相同，允许体积与各浓度随糖浆变化；目标是整个改配方的总效果。"
+    },
+    {
+      "id": "equal_volume_replacement",
+      "control": {
+        "syrup_dose_ml": 20,
+        "additional_water_ml": 20
+      },
+      "treatment": {
+        "syrup_dose_ml": 17.5,
+        "additional_water_ml": 22.5
+      },
+      "interpretation": "联合干预；在体积近似可加等假设下维持总体积。若糖浆含其他风味物，仍会改变这些成分。"
+    }
+  ],
+  "toy_example": {
+    "provenance": "explicit_hypothetical_inputs_not_product_measurements",
+    "inputs": {
+      "other_liquid_ml": 70,
+      "other_sugar_g": 0.5,
+      "ethanol_ml": 18,
+      "acid_equivalent_g": 1.25,
+      "syrup_sugar_g_l": 600
+    },
+    "scenarios": [
+      {
+        "id": "A",
+        "syrup_ml": 20,
+        "additional_water_ml": 20,
+        "total_ml": 110,
+        "sugar_g_l": 113.6364,
+        "acid_g_l": 11.3636,
+        "abv": 16.3636,
+        "predicted_liking": null
+      },
+      {
+        "id": "B_direct_reduction",
+        "syrup_ml": 17.5,
+        "additional_water_ml": 20,
+        "total_ml": 107.5,
+        "sugar_g_l": 102.3256,
+        "acid_g_l": 11.6279,
+        "abv": 16.7442,
+        "predicted_liking": null
+      },
+      {
+        "id": "C_equal_volume_replacement",
+        "syrup_ml": 17.5,
+        "additional_water_ml": 22.5,
+        "total_ml": 110.0,
+        "sugar_g_l": 100.0,
+        "acid_g_l": 11.3636,
+        "abv": 16.3636,
+        "predicted_liking": null
+      }
+    ],
+    "is_training_data": false
+  },
+  "applicability": {
+    "in_scope": "无气、无乳、无蛋清、未澄清的基础 Sour 原味糖浆局部试验",
+    "out_of_scope": [
+      "奶洗或过滤损失",
+      "起泡与泡沫体系",
+      "含固体糖未建模溶解体积",
+      "有香味糖浆的纯糖因果归因",
+      "品牌替换的综合效应"
+    ],
+    "missing_paths": [
+      "期待、环境与顺序需在正式实验图中展开",
+      "其他感官节点是占位变量，不能据此输出机制解释强度"
+    ]
+  },
+  "evidence": {
+    "source_ids": [
+      "sweet_sour"
+    ],
+    "resolved_sources": [
+      {
+        "id": "sweet_sour",
+        "title": "Sensory integration in citric acid/sucrose mixtures",
+        "url": "https://academic.oup.com/chemse/article-abstract/15/1/87/322423",
+        "evidence_type": "human_sensory_experiment",
+        "published": "1990",
+        "reviewed_at": "2026-09-15",
+        "review_after_days": 365,
+        "scope": "蔗糖与柠檬酸混合存在不对称的感知抑制；限实验浓度。核对出版方摘要，不冒充读过付费全文。"
+      }
+    ],
+    "methodology_urls": [
+      "https://www.pywhy.org/dowhy/main/user_guide/causal_tasks/estimating_causal_effects/index.html",
+      "https://www.pywhy.org/dowhy/main/user_guide/causal_tasks/what_if/interventions.html"
+    ],
+    "reviewed_at": "2026-09-16"
+  },
+  "readiness": {
+    "structurally_validated": true,
+    "causally_identified": false,
+    "sensory_calibrated": false,
+    "production_enabled": false
+  },
+  "validation": {
+    "unique_ids": true,
+    "edge_references": true,
+    "acyclic": true,
+    "toy_mass_balance_consistent": true,
+    "scope": "只校验结构、引用和演示算术，不验证因果假设成立或具有可识别性。"
+  }
+}
