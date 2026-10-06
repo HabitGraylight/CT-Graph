@@ -109,8 +109,8 @@ def observe(experiment_id, serving_id, tasting, observation, request_id=None, su
     if not isinstance(tasting,dict): raise ValueError('tasting 需要是对象')
     tasting=copy.deepcopy(tasting); tasting.setdefault('taster',experiment['taster'])
     if tasting['taster']!=experiment['taster']: raise ValueError('品鉴者与计划不一致，请另建会话')
-    sensory=learning.sensory_report(tasting)
-    if tasting['tasted'] is not True: raise ValueError('试验观察需明确已经实际试饮；设计笔记使用原 feedback 接口')
+    sensory=learning.sensory_report(tasting,data_kind=experiment['data_kind'])
+    if experiment['data_kind']=='real' and tasting['tasted'] is not True: raise ValueError('真实试验观察需明确已经实际试饮；设计笔记使用原 feedback 接口')
     if type(observation.get('as_planned')) is not bool: raise ValueError('需明确 as_planned：是否按计划制作')
     deviations=observation.get('deviations',''); learning.text_field(deviations,'deviations')
     if observation['as_planned']:
@@ -128,7 +128,7 @@ def observe(experiment_id, serving_id, tasting, observation, request_id=None, su
     trace['nodes'].extend([
         {'id':'experiment:'+experiment_id,'type':'Experiment','session_id':experiment['session_id']},
         {'id':'serving:'+serving_id,'type':'Serving'},
-        {'id':observation_node,'type':'Observation','timepoint_s':observation['timepoint_s'],'intensities':intensities,'sensory':sensory,'conditions':observed_conditions},
+        {'id':observation_node,'type':'Observation','data_kind':experiment['data_kind'],'timepoint_s':observation['timepoint_s'],'intensities':intensities,'sensory':sensory,'conditions':observed_conditions},
         {'id':graph.identity('taster',experiment['taster']),'type':'Taster','label':experiment['taster']},
     ])
     trace['edges'].extend([
@@ -171,7 +171,7 @@ def choose(experiment_id, preferred, timepoint_s=0, request_id=None):
     pair=[]
     for sample in experiment['samples']:
         found=next((r for r in observations if r['input']['serving_id']==sample['serving_id'] and r['input']['timepoint_s']==timepoint_s),None)
-        if not found: raise ValueError('两杯需在同一时间点都有真实观察，才能比较')
+        if not found: raise ValueError('两杯需在同一时间点都有观察，才能比较；真实计划只接受实饮记录')
         pair.append(found)
     selected=next((s for s in experiment['samples'] if s['code']==preferred),None)
     payload={'parameters':parameters,'experiment_id':experiment_id,'taster':experiment['taster'],'preferred':preferred,'timepoint_s':timepoint_s,

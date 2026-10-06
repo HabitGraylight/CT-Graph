@@ -78,7 +78,7 @@ context.materials 记录用户提供的产品标签、版本、批次；composit
 
 用户要求创建对照计划时用 experiment_create；保留返回的 ID、分配与快照。随机呈现不等于盲评。用户报告实际试饮后才用 experiment_observe，分别记录强度、七维质量、喜欢程度和时间点。偏离计划时记录 actual_snapshot 或 deviations。更正用 supersedes_observation_id，新制作另建计划；同杯多时点不作为独立重复。
 
-两杯同时间点的实际观察齐全后，按用户明确偏好调用 experiment_choose；不得由系统评分代替偏好。合成演示必须 data_kind: synthetic，不能进入个人排序。experiment_history 可回看；匹配同一参照与品鉴者的排序倾向仍是启发式，不声称得到因果效果。
+两杯同时间点的实际观察齐全后，按用户明确偏好调用 experiment_choose；不得由系统评分代替偏好。合成演示必须 data_kind: synthetic、tasting.tasted: false，可填写明确标注的模拟分数；不能进入个人排序。experiment_history 可回看；匹配同一参照与品鉴者的排序倾向仍是启发式，不声称得到因果效果。
 
 ## 维护知识
 

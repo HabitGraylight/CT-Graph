@@ -110,6 +110,8 @@ shake / stir 的 water_ml 记录该步新增融水；省略意味着未知。add
 - `experiment_history`：返回本地计划、观察和比较结果。
 - `graph`：使用与 evaluate 相同的配方输入返回图投影。
 
+合成计划（data_kind: synthetic）记录观察时必须 `tasting.tasted:false`，可填写明确人为设定的模拟分数；感官报告和图节点都标记 synthetic。真实计划仍要求 `tasted:true`。普通 feedback 接口不接受未试饮评分，合成记录永远不进入真实排序。
+
 观察请求，用计划返回的真实 ID 替换占位符：
 
 ```json

@@ -1,5 +1,11 @@
 # Changelog / 更新记录
 
+## 2026-10-06 · Synthetic experiment observations
+
+- Synthetic plans accept explicitly simulated sensory scores with `tasted:false`; reports and observation nodes retain their synthetic provenance.
+- Real observations still require actual tasting. Synthetic comparisons remain excluded from personal preference ordering.
+- The local trial form and advisor protocol distinguish simulated observations from real tasting confirmations.
+
 ## 2026-10-06 · Domain graph V2 and Sour experiments
 
 - Stable domain projections: ingredient uses, unresolved identity, declared product variants/batches, composition records, conditional claims and source provenance.

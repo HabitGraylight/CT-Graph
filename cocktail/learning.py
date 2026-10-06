@@ -63,13 +63,15 @@ def text_field(value,name,maxlength=3000):
     return value
 
 
-def sensory_report(tasting):
+def sensory_report(tasting, data_kind='real'):
+    if data_kind not in {'real','synthetic'}:raise ValueError('感官数据类型无效')
     if not isinstance(tasting,dict) or set(tasting)-{'tasted','ratings','descriptors','notes','overall_liking','taster'}:raise ValueError('tasting 字段无效')
     if type(tasting.get('tasted')) is not bool:raise ValueError('必须明确 tasted：是否已经实际试饮')
+    if data_kind=='synthetic' and tasting['tasted']:raise ValueError('合成观察必须 tasted: false，不能标为实际试饮')
     ratings=tasting.get('ratings',{})
     if not isinstance(ratings,dict) or set(ratings)-{id for id,_,_ in judge.DIMENSIONS}:raise ValueError('ratings 的维度无效')
     for id,v in ratings.items():judge.number(v,id,0,10)
-    if not tasting['tasted'] and (ratings or 'overall_liking' in tasting):raise ValueError('未实际试饮不能提交感官分数')
+    if data_kind=='real' and not tasting['tasted'] and (ratings or 'overall_liking' in tasting):raise ValueError('未实际试饮不能提交感官分数')
     descriptors=tasting.get('descriptors',[])
     if not isinstance(descriptors,list) or any(not isinstance(d,str) or d not in DESCRIPTORS for d in descriptors):raise ValueError('试饮描述选项无效')
     if len(set(descriptors))!=len(descriptors):raise ValueError('试饮描述不能重复')
@@ -77,9 +79,10 @@ def sensory_report(tasting):
     text_field(tasting.get('taster','local'),'taster',80)
     if 'overall_liking' in tasting:judge.number(tasting['overall_liking'],'overall_liking',0,10)
     return {'dimensions':[{'id':id,'name':name,'score':ratings.get(id)} for id,name,_ in judge.DIMENSIONS],
-        'total':round(sum(ratings.values()),2) if len(ratings)==7 and tasting['tasted'] else None,'maximum':70,
+        'total':round(sum(ratings.values()),2) if len(ratings)==7 and (tasting['tasted'] or data_kind=='synthetic') else None,'maximum':70,
         'rated_dimensions':len(ratings),'overall_liking':tasting.get('overall_liking'),
-        'provenance':'用户报告的真实试饮；系统未独立品尝' if tasting['tasted'] else '设计笔记，排除在口味学习之外'}
+        'data_kind':data_kind,
+        'provenance':'合成情景观察；未实际试饮，不进入真实偏好学习' if data_kind=='synthetic' else '用户报告的真实试饮；系统未独立品尝' if tasting['tasted'] else '设计笔记，排除在口味学习之外'}
 
 
 def save_feedback(frame,recipe,method=None,context=None,tasting=None,request_id=None,parent_trial_id=None,supersedes_trial_id=None):

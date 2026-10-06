@@ -99,7 +99,7 @@ class CandidateExperimentTests(unittest.TestCase):
         return experiments.create(recipe=RECIPE,context=copy.deepcopy(CONTEXT),**kwargs)
 
     def observe_pair(self,plan,timepoint=0):
-        return [experiments.observe(plan['id'],s['serving_id'],{'tasted':True,'overall_liking':7,'ratings':{'balance':7}},
+        return [experiments.observe(plan['id'],s['serving_id'],{'tasted':plan['input']['data_kind']=='real','overall_liking':7,'ratings':{'balance':7}},
                                    {'as_planned':True,'timepoint_s':timepoint,'intensities':{'sweet':6}}) for s in plan['input']['samples']]
 
     def test_candidates_preserve_original_and_show_linked_concentration_changes(self):
@@ -171,9 +171,23 @@ class CandidateExperimentTests(unittest.TestCase):
         self.assertEqual(first['input']['actual_recipe_id'],later['input']['actual_recipe_id'])
         self.assertEqual(later['input']['observed_conditions']['temperature_c'],2)
 
-    def test_synthetic_and_deviating_observations_do_not_teach_preferences(self):
+    def test_synthetic_observations_do_not_teach_preferences(self):
         plan=self.plan(data_kind='synthetic');self.observe_pair(plan);experiments.choose(plan['id'],'A')
         self.assertEqual(experiments.preference('local',plan['input']['reference_recipe_id'])['eligible_pairs'],0)
+
+    def test_synthetic_ratings_never_claim_actual_tasting(self):
+        plan=self.plan(data_kind='synthetic');s=plan['input']['samples'][0]
+        with self.assertRaises(ValueError):
+            experiments.observe(plan['id'],s['serving_id'],{'tasted':True},{'as_planned':True,'timepoint_s':0})
+        obs=experiments.observe(plan['id'],s['serving_id'],{'tasted':False,'overall_liking':8},
+                                {'as_planned':True,'timepoint_s':0})
+        self.assertEqual(obs['input']['sensory']['data_kind'],'synthetic')
+        self.assertFalse(obs['input']['tasting']['tasted'])
+        self.assertIn('未实际试饮',obs['input']['sensory']['provenance'])
+        with self.assertRaises(ValueError):
+            learning.save_feedback('sour',RECIPE,tasting={'tasted':False,'overall_liking':8})
+
+    def test_deviating_observations_do_not_teach_preferences(self):
         plan=self.plan()
         for s in plan['input']['samples']:
             experiments.observe(plan['id'],s['serving_id'],{'tasted':True},{'as_planned':True,'timepoint_s':0,'deviations':'different measured temperature'})
