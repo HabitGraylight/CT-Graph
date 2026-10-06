@@ -1,5 +1,14 @@
 # Changelog / 更新记录
 
+## 2026-10-06 · Domain graph V2 and Sour experiments
+
+- Stable domain projections: ingredient uses, unresolved identity, declared product variants/batches, composition records, conditional claims and source provenance.
+- Ordered process states; step-aware carbonated shaking checks, water accounting and clarification uncertainty. Completion preserves ingredient references when grouping rows.
+- Three Sour candidates with concentration tradeoffs, evidence links and bounded personal ordering.
+- Append-only local A/B plans, randomized presentation, timepoint observations, intensity/quality/liking separation, correction handling and retry-safe records across knowledge updates.
+- Recipe Lab UI, material/composition inputs, local trial history, CLI/API and updated advisor skill.
+- No fitted causal effects, no fabricated sensory scores, no redistribution of books, reference corpus or personal data. License remains pending.
+
 ## 2026-09-17
 
 ### Added

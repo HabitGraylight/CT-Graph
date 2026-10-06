@@ -1,5 +1,5 @@
 """Reviewed design prompts, kept separate from sensory scores and chemical laws."""
-VERSION = '2026-09-17.2'
+VERSION = '2026-10-06.1'
 SOURCES = {
     'liquid': {'title': 'Dave Arnold — Liquid Intelligence（中文版：酸类，印刷页 42–43）', 'url': 'https://wwnorton.com/books/9780393089035', 'kind': 'book_method', 'scope': '已核读本地书页；URL 仅为原著出版社书目，不代表网页包含该段证据。'},
     'codex': {'title': 'Cocktail Codex — six root families', 'url': 'https://www.deathandcompanymarket.com/products/cocktail-codex', 'kind': 'author_framework'},
@@ -57,7 +57,7 @@ def review(evaluation, context):
             '先声明目标版本，再比较味美思比例、鲜度与酒精度；需要目标版本模板时单独建版本。', ['codex'])
     process=context.get('process',{})
     preparations=process.get('preparations',[])
-    clarified=context.get('intent')=='milk_clarified' or process.get('clarification')=='whole_drink'
+    clarified=context.get('intent')=='milk_clarified' or process.get('clarification')=='whole_drink' or any(s['op']=='clarify' for s in process.get('steps',[]))
     if clarified:
         add('clarification_retention', '整杯澄清属于成分转移步骤：投料、滤出液和残留物要分开记录，成品浓度目前未知。',
             '记录工艺、投料和出液量；必要时测成品糖、酸与酒精。澄清度、颜色、酒体分别评价；不以出液率直接推算成分保留率。', ['process'])

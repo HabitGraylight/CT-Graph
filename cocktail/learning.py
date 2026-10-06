@@ -152,6 +152,8 @@ def improve(frame=None,recipe=None,method=None,context=None,feedback_id=None,avo
                 'reason':DESCRIPTORS[d]+'：先减少一个相关材料做对照；也会改变该材料的其他风味。'}
             break
         if d=='flat' and any(r['id']=='shake_carbonated' for r in before['judge']['risks']):
+            if new['context'].get('process',{}).get('steps'):
+                return {'blocked':True,'reason':'已记录有序步骤，请把气泡料移到摇和之后再评价；只改技法名称不能修正实际步骤。','before':before}
             new['method']='shake_top';change={'variable':'method','before':method,'after':'shake_top','reason':'气泡材料在无气部分摇和后加入。'};break
         if d=='too_strong':
             if any(i['ingredient']['id']=='water' for i in excluded):continue
@@ -161,9 +163,13 @@ def improve(frame=None,recipe=None,method=None,context=None,feedback_id=None,avo
                 idx=new['recipe'].index(water)
                 if items[idx]['ml'] is None:continue
                 old=items[idx]['ml'];water.update(amount=old+5,unit='ml')
-            else:old=0;new['recipe'].append({'name':'water','amount':5,'unit':'ml'})
+            else:
+                old=0;new['recipe'].append({'name':'water','amount':5,'unit':'ml'})
+                steps=new['context'].get('process',{}).get('steps')
+                if steps:next(s for s in steps if s['op']=='add')['uses'].append(len(new['recipe'])-1)
             change={'variable':'water','before':old,'after':old+5,'unit':'ml','reason':'明确增加 5 ml 水，测试刺激感与香气的变化；原融冰假设保持。'};break
         if d=='watery' and new['context'].get('dilution_ml',0)>=5:
+            if new['context'].get('process',{}).get('steps'):continue
             old=new['context']['dilution_ml'];new['context']['dilution_ml']=old-5
             change={'variable':'dilution_ml','before':old,'after':old-5,'unit':'ml','reason':'比较少 5 ml 融水的情景；需要改变实际操作并测量，不能只改记录。'};break
     if not change:return {'blocked':True,'reason':'目前没有足够依据自动改用量。先记录糖/酸浓度、温度、融水或泡沫表现，再做单变量试验。','before':before,'feedback_id':feedback_id}

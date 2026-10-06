@@ -67,4 +67,17 @@ class HTTPTests(unittest.TestCase):
             status,_=self.request('/api/feedback',{'tasting':{'tasted':False,'ratings':{'aroma':9}}})
             self.assertEqual(status,400)
 
+    def test_v2_candidates_graph_and_isolated_experiment(self):
+        with tempfile.TemporaryDirectory(dir=ROOT/'data/work') as folder,patch.object(learning,'DB',Path(folder)/'v2.sqlite'):
+            request={'frame':'sour','recipe':'gin 45ml,lemon_juice 25ml,simple_syrup 20ml'}
+            status,data=self.request('/api/recommend',request)
+            self.assertEqual(status,200);self.assertEqual(len(json.loads(data)['candidates']),3)
+            status,data=self.request('/api/graph',request)
+            self.assertEqual(status,200);self.assertEqual(json.loads(data)['schema_version'],'2.0.0')
+            status,data=self.request('/api/experiment_create',{**request,'data_kind':'synthetic'})
+            self.assertEqual(status,200);self.assertEqual(len(json.loads(data)['input']['samples']),2)
+            status,data=self.request('/api/experiment_history',{})
+            self.assertEqual(status,200);self.assertEqual(len(json.loads(data)['experiments']),1)
+            status,_=self.request('/lab.js');self.assertEqual(status,200)
+
 if __name__=='__main__':unittest.main()

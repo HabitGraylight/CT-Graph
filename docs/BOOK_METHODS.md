@@ -58,3 +58,6 @@ The runtime exposes six root families and conditional design prompts through `ca
 参考原页：Liquid Intelligence 中文版印刷页 71–72、82–83、213–216、266–268；Cocktail Codex 中文版印刷页 105、249；风味搭配书中文版印刷页 25、35。它们支持条件提示，不提供通用最佳摇和秒数、气泡强度或加工后的浓度。书中数值和作者偏好不自动转成阈值。
 
 Process checks separate ingredient preparation, whole-drink transformation and service. They retain uncertainty about composition, foam and sensory outcomes. There are no fitted causal coefficients or automatic quality bonuses for clarity, small bubbles or complexity.
+
+
+V2 将已审机制与设计提示投影成带条件和版本的断言节点，并连接每次候选与观察；本地阅读笔记仍不会自动进入运行规则。本轮新增试验与排序约定属于项目设计，未宣称来自书籍实证。

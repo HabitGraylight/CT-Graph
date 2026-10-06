@@ -20,12 +20,18 @@ function restoreJudgeContext(c={}){
   $('judge-theme').value=c.theme||'';$('judge-water').value=c.dilution_ml??'';$('judge-temperature').value=c.temperature_c??'';
 }
 function evidenceLinks(list){return '<div class="source-links">'+list.map(s=>link(s.url,s.title)).join('')+'</div>';}
+function processStateHTML(c){
+  const states=c.process_trace?.states||[];
+  if(!states.length)return '';
+  const labels={add:'加入原料',add_water:'加水',shake:'摇和',stir:'搅拌',strain:'粗滤',clarify:'澄清',carbonate:'充气',serve:'出杯'};
+  return '<h4>制作步骤与状态</h4><ol>'+states.map(s=>`<li>${esc(labels[s.op])} · 近似体积 ${s.volume_ml??'未知'} ${s.volume_ml===null?'':'ml'} · 温度 ${s.temperature_c??'未测'} ${s.temperature_c===null?'':'℃'}${s.composition_retention_known?'':' · 成分保留未知'}</li>`).join('')+'</ol><p class="fine">声明的工艺情景，实际执行仍需记录。</p>';
+}
 function judgeHTML(j){
   return `<section class="judge-review"><div class="section-label"><span>JUDGE / 七维复核</span><span class="pill">${esc(j.version)}</span></div><h3>${esc(j.verdict)}</h3><p class="fine">设计检查有分数的项目标为「设计」。实际品鉴七项各 10 分，试饮前留空。</p>
     <div class="judge-dimensions">${j.dimensions.map(d=>`<article class="judge-dimension"><div><strong>${esc(d.name)}</strong><span>${d.plan_score!==null?'设计 '+d.plan_score+'/10':'待观察'}</span></div><p>${esc(d.basis.join(' '))}</p><small>实饮 — /10 · ${esc(d.tasting_prompt)}</small></article>`).join('')}</div>
     ${j.risks.length?`<h4>这一杯先关注</h4><ul class="recommendations">${j.risks.map(r=>`<li>${esc(r.message)}</li>`).join('')}</ul>`:''}
     <details class="evidence"><summary>成分为什么会互相影响？ · ${j.interactions.length} 条提示</summary>${j.interactions.map(r=>`<article class="mechanism"><h4>${esc(r.title)}</h4><p>${esc(r.effect)}</p><p class="fine">适用条件：${esc(r.conditions)}</p><p class="fine">${esc(r.application)}</p><p>验证：${esc(r.verification)}</p>${evidenceLinks(j.sources.filter(s=>r.source_ids.includes(s.id)))}</article>`).join('')||'<p>暂未命中已建模机制，不代表不存在相互作用。</p>'}</details>
-    <details class="evidence"><summary>浓度、稀释与证据边界</summary><p class="fine">${esc(j.composition.note)}</p><p>已计量液体 ${j.composition.measured_liquid_ml} ml；额外水 ${j.composition.additional_water_ml??'未知'} ${j.composition.additional_water_ml!==null?'ml':''}。</p>${Object.entries(j.composition.estimates).map(([k,v])=>`<p>${esc({abv:'酒精浓度',sugar_g_l:'糖浓度',acid_g_l:'可滴定酸度（以柠檬酸计）'}[k])}：${v.value===null?'资料不足':v.value+' '+v.unit} · ${esc(v.stage)}</p>`).join('')}<p class="fine">${esc(j.self_review)}</p>${evidenceLinks(j.sources)}</details>
+    <details class="evidence"><summary>浓度、稀释与证据边界</summary><p class="fine">${esc(j.composition.note)}</p>${processStateHTML(j.composition)}<p>已计量液体 ${j.composition.measured_liquid_ml} ml；额外水 ${j.composition.additional_water_ml??'未知'} ${j.composition.additional_water_ml!==null?'ml':''}。</p>${Object.entries(j.composition.estimates).map(([k,v])=>`<p>${esc({abv:'酒精浓度',sugar_g_l:'糖浓度',acid_g_l:'可滴定酸度（以柠檬酸计）'}[k])}：${v.value===null?'资料不足':v.value+' '+v.unit} · ${esc(v.stage)}</p>`).join('')}<p class="fine">${esc(j.self_review)}</p>${evidenceLinks(j.sources)}</details>
     ${j.design_review?`<details class="evidence"><summary>结构、替换与出杯检查 · ${esc(j.design_review.version)}</summary><p class="fine">${esc(j.design_review.mapping_policy)}</p><p>${j.design_review.roots.map(r=>esc(r.name)).join(' / ')}</p>${j.design_review.prompts.map(p=>`<article class="mechanism"><h4>${esc(p.message)}</h4><p>验证：${esc(p.verification)}</p></article>`).join('')}${evidenceLinks(j.design_review.sources)}</details>`:''}
     <button id="judge-improve" class="secondary">生成一个小改动，比较前后</button><div id="judge-improvement" aria-live="polite"></div>
     <details class="evidence"><summary>试饮后，给这杯酒反馈</summary><p class="fine">这份反馈绑定上面的配方与条件。实际用了不同用量，请先重新评价。</p>

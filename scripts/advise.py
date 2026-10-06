@@ -8,7 +8,7 @@ from cocktail import engine, judge, learning
 from cocktail.knowledge import FRAMEWORKS
 from cocktail.normalization import parse_items
 
-ACTIONS = ['evaluate','judge','complete','improve','feedback','history','profile','knowledge','knowledge_review','knowledge_note','compare','pantry','catalog','resolve','frameworks']
+ACTIONS = ['recommend','graph','experiment_create','experiment_observe','experiment_choose','experiment_history','evaluate','judge','complete','improve','feedback','history','profile','knowledge','knowledge_review','knowledge_note','compare','pantry','catalog','resolve','frameworks']
 
 def compact(result, action):
     """Keep evidence and blockers, omit repeated vocabulary payloads."""
@@ -37,16 +37,29 @@ def compact(result, action):
 
 def dispatch(request):
     if not isinstance(request,dict):raise ValueError('请求需要是 JSON 对象')
-    permitted={'action','frame','recipe','pantry','avoid','method','preference','name','context','tasting','request_id','feedback_id','parent_trial_id','supersedes_trial_id','taster','rule_id','url','finding'}
+    permitted={'action','frame','recipe','pantry','avoid','method','preference','name','context','tasting','request_id','feedback_id','parent_trial_id','supersedes_trial_id','taster','rule_id','url','finding','candidate_id','data_kind','experiment_id','serving_id','observation','supersedes_observation_id','preferred','timepoint_s'}
     if set(request)-permitted:raise ValueError('不支持的字段：'+','.join(sorted(set(request)-permitted)))
     action=request.get('action')
     if action not in ACTIONS:raise ValueError('请求需要提供有效 action')
-    new_fields={'context','tasting','request_id','feedback_id','parent_trial_id','supersedes_trial_id','taster','rule_id','url','finding'}
+    new_fields={'context','tasting','request_id','feedback_id','parent_trial_id','supersedes_trial_id','taster','rule_id','url','finding','candidate_id','data_kind','experiment_id','serving_id','observation','supersedes_observation_id','preferred','timepoint_s'}
     supported={
+        'recommend':{'context','taster'},'graph':{'context'},
+        'experiment_create':{'context','taster','candidate_id','data_kind','request_id'},
+        'experiment_observe':{'experiment_id','serving_id','tasting','observation','request_id','supersedes_observation_id'},
+        'experiment_choose':{'experiment_id','preferred','timepoint_s','request_id'},
         'evaluate':{'context'},'judge':{'context'},'complete':{'context','taster'},
         'improve':{'context','feedback_id'},'feedback':{'context','tasting','request_id','parent_trial_id','supersedes_trial_id'},
         'profile':{'taster'},'knowledge_note':{'rule_id','url','finding','request_id'}}
     if (set(request)&new_fields)-supported.get(action,set()):raise ValueError('当前 action 不支持提供的附加字段')
+    if action in {'recommend','graph','experiment_create','experiment_observe','experiment_choose','experiment_history'}:
+        from cocktail import planning, experiments, graph
+        if action=='graph': return graph.from_evaluation(engine.evaluate(request.get('frame','sour'),request.get('recipe',''),request.get('method'),request.get('context')))
+        if action=='experiment_history': return experiments.history()
+        if action=='experiment_observe': return experiments.observe(request.get('experiment_id'),request.get('serving_id'),request.get('tasting'),request.get('observation'),request.get('request_id'),request.get('supersedes_observation_id'))
+        if action=='experiment_choose': return experiments.choose(request.get('experiment_id'),request.get('preferred'),request.get('timepoint_s',0),request.get('request_id'))
+        args=[request.get('frame','sour'),request.get('recipe',''),request.get('pantry',''),request.get('avoid',''),request.get('context'),request.get('taster','local'),request.get('method')]
+        if action=='recommend': return planning.recommend(*args)
+        return experiments.create(*args,candidate_id=request.get('candidate_id','water_swap'),request_id=request.get('request_id'),data_kind=request.get('data_kind','real'))
     if action in ('evaluate','judge'):result=engine.evaluate(request.get('frame','sour'),request.get('recipe',''),request.get('method'),request.get('context'))
     elif action=='complete':result=engine.complete(request.get('frame','sour'),request.get('recipe',''),request.get('pantry',''),request.get('avoid',''),request.get('preference','balanced'),request.get('context'),request.get('taster','local'))
     elif action=='improve':result=learning.improve(request.get('frame'),request.get('recipe'),request.get('method'),request.get('context'),request.get('feedback_id'),request.get('avoid',''))

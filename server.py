@@ -40,7 +40,7 @@ class Handler(BaseHTTPRequestHandler):
         if url.path=='/api/knowledge':return self.send(200,judge.inspect_ingredient(parse_qs(url.query).get('name',['lemon_juice'])[0]))
         if url.path=='/api/compare':
             return self.send(200,engine.compare(parse_qs(url.query).get('name',['Negroni'])[0]))
-        paths={'/':'index.html','/app.js':'app.js','/judge.js':'judge.js','/style.css':'style.css'}
+        paths={'/':'index.html','/app.js':'app.js','/judge.js':'judge.js','/lab.js':'lab.js','/style.css':'style.css'}
         if url.path not in paths:return self.send(404,{'error':'页面不存在'})
         path=STATIC/paths[url.path]
         self.send(200,path.read_bytes(),(mimetypes.guess_type(str(path))[0] or 'text/plain')+'; charset=utf-8')
@@ -57,7 +57,7 @@ class Handler(BaseHTTPRequestHandler):
             elif self.path=='/api/complete':
                 result=engine.complete(body.get('frame'),body.get('recipe',''),body.get('pantry',''),body.get('avoid',''),body.get('preference','balanced'),body.get('context'),body.get('taster','local'))
             elif self.path=='/api/pantry':result=engine.pantry_matches(body.get('pantry',''))
-            elif self.path in {'/api/judge','/api/improve','/api/feedback','/api/profile','/api/knowledge_note'}:
+            elif self.path in {'/api/judge','/api/improve','/api/feedback','/api/profile','/api/knowledge_note','/api/recommend','/api/graph','/api/experiment_create','/api/experiment_observe','/api/experiment_choose','/api/experiment_history'}:
                 result=dispatch({**body,'action':self.path.removeprefix('/api/')})
             else:return self.send(404,{'error':'接口不存在'})
             self.send(200,result)

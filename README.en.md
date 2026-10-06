@@ -16,6 +16,13 @@
 
 [Quick start](#quick-start) · [Capabilities](#capabilities) · [Knowledge methods](docs/BOOK_METHODS.md) · [Roadmap](docs/ROADMAP.md) · [Contributing](CONTRIBUTING.md)
 
+
+### V2 recipe lab
+
+Compare a Sour reference with a small syrup reduction and a volume-preserving water substitution. Trace product batches, composition evidence and ordered preparation steps; create randomized-order A/B plans and record timepoint-specific intensity, quality and liking. Valid feedback affects later ordering only for the same taster and reference conditions. Sensory predictions remain unknown.
+
+[Guide and API](docs/V2_GUIDE.md). The workbench UI remains Chinese; existing interfaces stay available.
+
 ## Capabilities
 
 | Area | Available | Boundary |
@@ -92,6 +99,7 @@ Detailed technical documentation is currently primarily Chinese.
 python -X utf8 -m unittest discover -s tests -q
 node --check web/app.js
 node --check web/judge.js
+node --check web/lab.js
 python scripts/check_publication.py
 ```
 

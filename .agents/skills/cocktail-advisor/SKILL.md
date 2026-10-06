@@ -24,6 +24,8 @@ python -X utf8 scripts/advise.py --request data/work/advisor-request.json --comp
 | 评判配方合理性、预测风险与七维设计检查 | judge 或 evaluate |
 | 按框架与材料架补全，推荐配料 | complete（自动附 judge，必要时附 refinement） |
 | 根据设计问题或实际反馈提出下一版 | improve |
+| 比较 Sour 候选、生成并追踪 A/B 对照 | recommend / experiment_create / experiment_observe / experiment_choose |
+| 追溯用料、产品批次、步骤与证据关系 | graph |
 | 用户已说出实际试饮感受并要求记录或持续改进 | feedback，保存明确的配方与当次条件 |
 | 回看杯次与个人口味倾向 | history / profile |
 | 解释某原料的可能成分及交互 | knowledge |
@@ -67,6 +69,16 @@ python -X utf8 scripts/advise.py --request data/work/advisor-request.json --comp
 用 feedback_id 调用 improve，返回候选后说明改动量、预期权衡和 A/B 验证方式。无可支持的自动改量时，使用返回的 blocked 原因提出最关键的观察项。下一杯实际试饮后通过 parent_trial_id 保留版本关系。
 
 持久记录位于 `data/feedback/advisor.sqlite`；旧浏览器手记不自动当作真实试饮样本。个人偏好不修改公共科学规则。
+
+## V2 候选与试验
+
+比较多个 Sour 方案或安排实际试验时，读取 [V2 接口指南](../../../docs/V2_GUIDE.md)。recommend 保留原版并给出改版，不把框架分当作候选好喝排名。先解释浓度变化、缺失数据及 evidence_ids；不把词典同角色替代当作等量替换。
+
+context.materials 记录用户提供的产品标签、版本、批次；composition 只填对应实际投料状态的瓶标、测量或明确假设。context.process.steps 是有序步骤，uses 指向请求配方行的零起始索引；缺失融水保持未知。不要编造批次或默认温度。详细步骤当前通过 JSON 使用。
+
+用户要求创建对照计划时用 experiment_create；保留返回的 ID、分配与快照。随机呈现不等于盲评。用户报告实际试饮后才用 experiment_observe，分别记录强度、七维质量、喜欢程度和时间点。偏离计划时记录 actual_snapshot 或 deviations。更正用 supersedes_observation_id，新制作另建计划；同杯多时点不作为独立重复。
+
+两杯同时间点的实际观察齐全后，按用户明确偏好调用 experiment_choose；不得由系统评分代替偏好。合成演示必须 data_kind: synthetic，不能进入个人排序。experiment_history 可回看；匹配同一参照与品鉴者的排序倾向仍是启发式，不声称得到因果效果。
 
 ## 维护知识
 

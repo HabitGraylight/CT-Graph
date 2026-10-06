@@ -89,3 +89,12 @@
 !/web/index.html
 !/web/judge.js
 !/web/style.css
+
+!/cocktail/process.py
+!/cocktail/graph.py
+!/cocktail/planning.py
+!/cocktail/experiments.py
+!/scripts/build_graph_v2.py
+!/tests/test_v2.py
+!/web/lab.js
+!/docs/V2_GUIDE.md

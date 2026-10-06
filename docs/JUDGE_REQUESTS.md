@@ -152,3 +152,8 @@ composition 数值必须对应实际投料状态，不能把鲜汁数值冒充�
 整杯澄清的无反馈自动改进会暂停，要求真实试饮；有反馈时仍只产生单变量候选，不预测味觉收益。网页支持整杯处理、气泡、服务与预调选择；具体原料状态可通过 JSON 提供，并随载入快照保留。
 
 **English:** `context.process` records preparation and service conditions without inventing sensory scores. Whole-drink clarification invalidates final concentration estimates; the input scenario remains separately available. Ingredient-level preparation describes the material actually dosed, not a processing sequence. Missing fields mean unknown. Recipe-only auto-tuning is blocked after unmodeled whole-drink clarification; real tasting can support a controlled trial.
+
+
+## V2 扩展
+
+新增 materials、process.steps，以及 recommend / graph / experiment_create / experiment_observe / experiment_choose / experiment_history。完整字段、合成示例与兼容边界见 [V2 使用指南](V2_GUIDE.md)。

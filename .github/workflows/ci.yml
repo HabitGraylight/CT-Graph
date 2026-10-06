@@ -27,3 +27,4 @@ jobs:
       - run: python -X utf8 -m unittest discover -s tests -q
       - run: node --check web/app.js
       - run: node --check web/judge.js
+      - run: node --check web/lab.js

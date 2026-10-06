@@ -19,6 +19,13 @@
 
 **工艺状态检查**：支持澄清、预调、气泡与出杯方式；整杯澄清后的浓度保留未知，投料估算单独追溯。见 [接口说明](docs/JUDGE_REQUESTS.md#工艺状态--process-state)。
 
+
+### V2 配方试验室
+
+Sour 现支持原版、少量减糖浆和等体积替换三种候选；显示成分情景差异与依据，并生成随机顺序的 A/B 计划。实际产品、批次、制作步骤和分时观察可追溯，同条件反馈可影响后续排序。未知浓度与感官预测保持空值。
+
+[使用指南与接口](docs/V2_GUIDE.md) · 网页入口：工作台 → 比较 Sour 候选与试饮方案。
+
 ## 能力与边界
 
 | 能力 | 已实现 | 边界 |
@@ -98,6 +105,7 @@ flowchart LR
 python -X utf8 -m unittest discover -s tests -q
 node --check web/app.js
 node --check web/judge.js
+node --check web/lab.js
 python scripts/check_publication.py
 ```
 

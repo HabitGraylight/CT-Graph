@@ -5,7 +5,7 @@ import math
 from datetime import date, timedelta
 from .knowledge import ROOT
 from .normalization import resolve
-from . import design
+from . import design, process
 
 DIMENSIONS = [
     ('appearance','外观','风格所需的清澈、色泽、泡沫和装饰是否实现？'),
@@ -32,7 +32,7 @@ def number(value, label, low, high):
 def validate_context(value=None):
     c={} if value is None else value
     if not isinstance(c,dict):raise ValueError('context 需要是对象')
-    allowed={'intent','appearance_target','texture_target','theme','garnish','glass_chilled','dilution_ml','temperature_c','final_ph','composition','process'}
+    allowed={'intent','appearance_target','texture_target','theme','garnish','glass_chilled','dilution_ml','temperature_c','final_ph','composition','process','materials'}
     if set(c)-allowed:raise ValueError('不支持的 context 字段：'+','.join(sorted(set(c)-allowed)))
     for k,choices in [('intent',{'classic','original','milk_clarified'}),('appearance_target',{'clear','cloudy','foam','any'}),('texture_target',{'silky','light','foamy','sparkling','any'})]:
         if k in c and c[k] not in choices:raise ValueError(k+' 选项无效')
@@ -41,9 +41,12 @@ def validate_context(value=None):
     if 'glass_chilled' in c and type(c['glass_chilled']) is not bool:raise ValueError('glass_chilled 需为布尔值')
     for k,lo,hi in [('dilution_ml',0,5000),('temperature_c',-30,100),('final_ph',0,14)]:
         if k in c:number(c[k],k,lo,hi)
+    from .process import validate_materials, validate_steps
+    validate_materials(c.get('materials',[]))
     process=c.get('process',{})
-    if not isinstance(process,dict) or set(process)-{'clarification','carbonation','service','batched','preparations'}:
+    if not isinstance(process,dict) or set(process)-{'clarification','carbonation','service','batched','preparations','steps'}:
         raise ValueError('process 字段无效')
+    if 'steps' in process:validate_steps(process['steps'])
     for k,choices in [('clarification',{'none','strained','whole_drink'}),('carbonation',{'none','top_up','force'}),('service',{'up','on_ice'})]:
         if k in process and (not isinstance(process[k],str) or process[k] not in choices):raise ValueError('process.'+k+' 选项无效')
     if 'batched' in process and type(process['batched']) is not bool:raise ValueError('process.batched 需为布尔值')
@@ -93,13 +96,15 @@ def composition_report(items, context):
     specs={resolve(e['name'])['ingredient']['id']:e for e in context.get('composition',[])}
     known={i['ingredient']['id'] for i in items if i['status']=='matched'}
     if specs.keys()-known:raise ValueError('成分数据引用了当前配方中没有的原料')
+    if {resolve(m['name'])['ingredient']['id'] for m in context.get('materials',[])}-known:raise ValueError('材料身份引用了配方中没有的原料')
     preparations=context.get('process',{}).get('preparations',[])
     if {resolve(e['name'])['ingredient']['id'] for e in preparations}-known:raise ValueError('加工状态引用了当前配方中没有的原料')
     nonliquid={'garnish','ice','herb','fruit','seasoning','solid_sweet'}
     liquids=[i for i in items if i['status']!='matched' or not set(i['ingredient']['roles'])&nonliquid]
     missing_volume=[i['name'] for i in liquids if i['ml'] is None]
     volume=sum(i['ml'] or 0 for i in liquids)
-    dilution=context.get('dilution_ml')
+    stages=process.trace(items,context)
+    dilution=stages['additional_water_ml']
     final_volume=volume+(dilution or 0)
     output={'measured_liquid_ml':round(volume,2),'additional_water_ml':dilution,
             'dilution_definition':'额外融冰/加水体积 ÷ 配方中已计量液体体积；已写进原料的水不要重复填。',
@@ -119,7 +124,8 @@ def composition_report(items, context):
         output['estimates'][metric]={'value':round(numerator/final_volume,3) if liquids and not missing and final_volume>0 else None,
               'unit':unit,'stage':'已声明额外水量的情景估算' if dilution is not None else '融冰前估算',
               'missing':missing,'assumed_ingredients':assumed,'inputs':context.get('composition',[])}
-    transformed=context.get('intent')=='milk_clarified' or context.get('process',{}).get('clarification')=='whole_drink'
+    transformed=context.get('intent')=='milk_clarified' or context.get('process',{}).get('clarification')=='whole_drink' or stages['transformed']
+    output['process_trace']=stages
     output['process_stage']='whole_drink_transformation' if transformed else 'mixing_scenario'
     if transformed:
         output['input_scenario_estimates']=output['estimates']
@@ -133,6 +139,8 @@ def composition_report(items, context):
 
 def review(evaluation, method=None, context=None):
     c=validate_context(context); kb=knowledge();items=evaluation['items']
+    composition=composition_report(items,c)
+    clarifying=composition['process_stage']=='whole_drink_transformation'
     profiles={p['ingredient_id']:p for p in kb['profiles']}
     used=[profiles[i['ingredient']['id']] for i in items if i['status']=='matched']
     components={component for p in used for component in p['component_ids']}
@@ -141,8 +149,8 @@ def review(evaluation, method=None, context=None):
         if rule['status']!='active' or not set(rule['requires'])<=components:continue
         r=dict(rule)
         r['triggered_by']={comp:[p['name'] for p in used if comp in p['component_ids']] for comp in rule['requires']}
-        r['application']='工艺目标：聚集后过滤，成品是否澄清待验证' if rule['id']=='milk_acid' and c.get('intent')=='milk_clarified' else '条件性提示，不代表反应已经发生'
-        if c.get('process',{}).get('preparations') or c.get('process',{}).get('clarification')=='whole_drink' or c.get('intent')=='milk_clarified':
+        r['application']='工艺目标：聚集后过滤，成品是否澄清待验证' if rule['id']=='milk_acid' and clarifying else '条件性提示，不代表反应已经发生'
+        if c.get('process',{}).get('preparations') or clarifying:
             r['application']+='；依据投料类别触发，加工后的成分保留与反应状态未实测'
         interactions.append(r)
     risks=[]
@@ -150,8 +158,10 @@ def review(evaluation, method=None, context=None):
     for check in evaluation['checks']:
         if check['state'] in {'high','low','missing'}:
             risk('slot_'+check['slot'],check['label']+'：'+{'high':'相对框架偏多','low':'相对框架偏少','missing':'缺少'}[check['state']],['balance','structure'],'design',[])
-    if 'co2' in components and method=='shake':risk('shake_carbonated','气泡料应在无气部分摇和完成后加入；当前整杯摇和方案需调整。',['execution','texture'],'action',['co2'])
-    if 'casein' in components and 'organic_acids' in components and c.get('intent')!='milk_clarified':risk('curdling_check','牛乳与酸同用：先小样检查絮凝，确认是否需要澄清工艺。',['appearance','texture'],'watch',['casein'])
+    stages=composition['process_trace']
+    if any(w['id']=='shake_carbonated' for w in stages['warnings']) or (stages['status']=='not_recorded' and 'co2' in components and method=='shake'):
+        risk('shake_carbonated','气泡料应在无气部分摇和完成后加入；当前整杯摇和方案需调整。',['execution','texture'],'action',['co2'])
+    if 'casein' in components and 'organic_acids' in components and not clarifying:risk('curdling_check','牛乳与酸同用：先小样检查絮凝，确认是否需要澄清工艺。',['appearance','texture'],'watch',['casein'])
     if c.get('appearance_target')=='clear' and components&{'egg_protein','suspended_solids','casein'}:risk('clarity_target','投料可能带入泡沫或悬浮物；已有加工记录也需核对成品清澈度，清澈不等于无色。',['appearance'],'watch',['iba_sour'])
     if c.get('intent')=='milk_clarified':risk('clarified_unmodeled','奶洗会改变成分保留与体积，当前计算只适用于过滤前投料。',['balance','texture'],'watch',['casein'])
     has_unknown=any(i['status']!='matched' for i in items)
@@ -183,7 +193,7 @@ def review(evaluation, method=None, context=None):
         'recipe_id':fingerprint(snapshot),'snapshot':snapshot,'dimensions':dimensions,'sensory_total':None,
         'verdict':'资料不足，需先澄清原料与用量' if evaluation['score'] is None else '存在需要调整或试验的设计问题' if risks else '可作为试饮候选，尚无真实口味验证',
         'scoring_policy':'七项实际品鉴各 0–10 分；全部实填才汇总 /70。设计代理分不合成感官总分，机制不自动加减分。',
-        'risks':risks,'interactions':interactions,'ingredient_profiles':used,'composition':composition_report(items,c),
+        'risks':risks,'interactions':interactions,'ingredient_profiles':used,'composition':composition,
         'sources':[s for s in kb['sources'] if s['id'] in source_ids],
         'next_trial':['同配方、同温度、同冰与杯型做 A/B；每次只改一个变量。','分别记录第一口和放置 2 分钟后的感受；保留原配方和修改量。'],
         'self_review':'推荐与 judge 共用规则，属于内部复核；只有实际试饮反馈能检验口味改进。'}

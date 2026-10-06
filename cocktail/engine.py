@@ -61,6 +61,8 @@ def nearest(items,limit=4):
     return sorted(ranked,key=lambda r:(-r['ingredient_overlap'],r['name']))[:limit]
 
 def evaluate(frame_id,value,method=None,context=None):
+    from .judge import validate_context
+    context=validate_context(context)
     frame=get_frame(frame_id)
     if method and method not in METHODS:raise ValueError('制作技法无效')
     items=parse_items(value)
@@ -101,7 +103,7 @@ def evaluate(frame_id,value,method=None,context=None):
         suggestions.append(f"{i['ingredient']['zh']}不属于此框架的核心槽位，可能改变风格；未计入酸甜比例。")
     if method and method not in frame['methods']:
         suggestions.append('此框架建议'+ ' / '.join(METHODS[m] for m in frame['methods'])+'。')
-    if method=='shake' and any(i['status']=='matched' and 'carbonated' in i['ingredient']['roles'] for i in items):
+    if method=='shake' and not (context or {}).get('process',{}).get('steps') and any(i['status']=='matched' and 'carbonated' in i['ingredient']['roles'] for i in items):
         suggestions.append('气泡材料应在摇和结束后加入，不放入密闭摇壶摇和。')
     for i in items:
         if i['status']=='matched' and i['ingredient']['note']:
@@ -156,6 +158,9 @@ def complete(frame_id,value='',pantry='',avoid='',preference='balanced',context=
     if any(not allowed(i['ingredient']) for i in original):
         return {'blocked':True,'reason':'当前配方含有你设置不使用的原料；请先移除或调整。'}
     slots,extras=assign(frame,original)
+    if context.get('process',{}).get('steps'):
+        if any(not entries for entries in slots.values()) or any(i['amount'] is None for i in original):
+            return {'blocked':True,'reason':'有序步骤绑定完整配方行；请先补齐配方与用量，再记录步骤。'}
     base=measured(frame['slots'][0],slots['base']) or frame['slots'][0]['amount']
     result=[];shopping=[];notes=[];changes=[]
     for s in frame['slots']:
@@ -191,6 +196,18 @@ def complete(frame_id,value='',pantry='',avoid='',preference='balanced',context=
     if unresolved:notes.append('库存中有未识别或有歧义的名称，未将它们算作已经拥有的材料。')
     if preference=='drier':notes.append('偏干选项只对新补充的糖浆减少 20%；保留已填写用量，不替你重写配方。')
     notes.extend(['库存按有无匹配，不计算瓶中剩余量。','这是传统结构启发的试配草案；建议的评分只说明规则内部契合，未经过实际试饮。'])
+    if context.get('process',{}).get('steps'):
+        import copy
+        context=copy.deepcopy(context)
+        # Completion groups rows by role; preserve each original step's ingredient binding.
+        remaining=list(range(len(result))); mapping={}
+        for old,item in enumerate(original):
+            new=next(n for n in remaining if result[n]['name']==item['ingredient']['id'])
+            mapping[old]=new;remaining.remove(new)
+        for step in context['process']['steps']:
+            if step['op']=='add':
+                if any(i not in mapping for i in step['uses']):raise ValueError('步骤引用不存在的原料行')
+                step['uses']=[mapping[i] for i in step['uses']]
     scored=evaluate(frame_id,result,frame['methods'][0],context)
     alternatives=[]
     in_pantry={i['ingredient']['id'] for i in available if i['status']=='matched'}
