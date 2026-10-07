@@ -28,3 +28,21 @@ jobs:
       - run: node --check web/app.js
       - run: node --check web/judge.js
       - run: node --check web/lab.js
+      - run: node --check cloud/web/app.js
+      - run: python scripts/build_cloud.py
+  cloud-data:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - run: npm ci --prefix tests/database --ignore-scripts
+      - run: npm test --prefix tests/database
+      - run: npm ci --prefix tests/web --ignore-scripts
+      - run: npm test --prefix tests/web

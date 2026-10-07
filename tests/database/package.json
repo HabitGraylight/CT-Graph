@@ -1,0 +1,6 @@
+{
+  "name": "ct-graph-database-tests",
+  "private": true,
+  "scripts": {"test": "node isolation.mjs"},
+  "devDependencies": {"@electric-sql/pglite": "0.5.8"}
+}

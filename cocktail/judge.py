@@ -19,6 +19,10 @@ DIMENSIONS = [
 
 
 def knowledge():
+    from .runtime import PUBLIC_ONLY
+    if PUBLIC_ONLY.get():
+        from scripts.build_judge_knowledge import public_knowledge
+        return public_knowledge()
     # Read on each review so a newly reviewed version takes effect without stale caches.
     return json.loads((ROOT/'data/knowledge/judge.json').read_text(encoding='utf-8'))
 

@@ -25,6 +25,12 @@ Compare a Sour reference with a small syrup reduction and a volume-preserving wa
 
 ## Capabilities
 
+### Multi-user web application · Vercel + Supabase
+
+An optional cloud UI provides email accounts, personal flavor targets, private immutable recipe versions, real tasting records, and opt-in community recipes. It only uses public advisor rules and never imports local private data. Community selection exposes sample counts and raw means and excludes author votes.
+
+**[Deployment and operating guide](docs/DEPLOY_VERCEL.en.md)** · Local preview: `python scripts/cloud_preview.py --port 8877`. Account features clearly remain unavailable until the cloud database and Auth provider are configured.
+
 | Area | Available | Boundary |
 |---|---|---|
 | Recipe design | Framework checks, completion and role-based alternatives | Structure fit is not a predicted taste score |

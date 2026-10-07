@@ -4,6 +4,7 @@ import math
 from functools import lru_cache
 from .knowledge import ROOT, FRAMEWORKS, INGREDIENTS, METHODS
 from .normalization import BY_ID, parse_items, resolve, category_id, key
+from .runtime import PUBLIC_ONLY
 
 FRAMES={f['id']:f for f in FRAMEWORKS}
 
@@ -11,13 +12,21 @@ def get_frame(id):
     if id not in FRAMES: raise ValueError('请选择支持的调酒框架')
     return FRAMES[id]
 
-@lru_cache(maxsize=1)
 def corpus():
+    if PUBLIC_ONLY.get():return []
+    return _local_corpus()
+
+@lru_cache(maxsize=1)
+def _local_corpus():
     with (ROOT/'data/aligned/recipes.jsonl').open(encoding='utf-8') as f:
         return [json.loads(l) for l in f if l.strip()]
 
-@lru_cache(maxsize=1)
 def comparisons():
+    if PUBLIC_ONLY.get():return []
+    return _local_comparisons()
+
+@lru_cache(maxsize=1)
+def _local_comparisons():
     with (ROOT/'data/aligned/comparisons.jsonl').open(encoding='utf-8') as f:
         return [json.loads(l) for l in f if l.strip()]
 
@@ -226,7 +235,8 @@ def complete(frame_id,value='',pantry='',avoid='',preference='balanced',context=
 
 def catalog():
     from . import design
-    stats=json.loads((ROOT/'data/aligned/stats.json').read_text(encoding='utf-8'))
+    stats=({'recipes':0,'canonical_ingredients':len(INGREDIENTS),'frameworks':len(FRAMEWORKS),'comparison_groups':0}
+           if PUBLIC_ONLY.get() else json.loads((ROOT/'data/aligned/stats.json').read_text(encoding='utf-8')))
     return {'design_knowledge':design.catalog(),'frameworks':FRAMEWORKS,'ingredients':INGREDIENTS,'methods':METHODS,'stats':stats,
             'comparison_groups':[{'name':c['name'],'name_key':c['name_key'],'versions':len(c['version_ids'])} for c in comparisons()]}
 

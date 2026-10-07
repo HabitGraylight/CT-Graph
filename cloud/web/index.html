@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="从经典结构出发，记录真实试饮，找到属于自己的风味基准。"
+    />
+    <title>调酒手记 · 找到你的那一杯</title>
+    <link rel="icon" href="/mark.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/style.css" />
+    <script src="/app.js" type="module"></script>
+  </head>
+  <body>
+    <header class="masthead">
+      <a class="brand" href="/" aria-label="调酒手记首页"
+        ><img src="/mark.svg" alt="" width="32" height="32" /><span
+          >调酒手记<small>COCKTAIL ATELIER</small></span
+        ></a
+      >
+      <nav aria-label="主要导航">
+        <button data-view="studio" class="active">调配工作台</button
+        ><button data-view="profile">我的风味</button
+        ><button data-view="community">社区酒单</button>
+      </nav>
+      <button id="account-button" class="button small">
+        登录 / 注册 <span>↗</span>
+      </button>
+    </header>
+    <div
+      id="notice"
+      class="notice"
+      role="status"
+      aria-live="polite"
+      hidden
+    ></div>
+    <main>
+      <section id="setup-banner" class="setup-banner" hidden>
+        <span class="status-dot"></span>
+        <div>
+          <strong>体验版 · 调配引擎已就绪</strong
+          ><span
+            >账号与在线存储尚未连接。现在可以评价、补全配方；连接 Supabase
+            后即可保存个人风味和发布酒单。</span
+          >
+        </div>
+      </section>
+      <section id="studio" class="view">
+        <div class="hero">
+          <div>
+            <p class="eyebrow">A GOOD DRINK STARTS WITH YOU</p>
+            <h1>经典有章法，<br />风味有<span>自己。</span></h1>
+            <p class="lead">
+              从一份配方开始，慢慢了解自己的味蕾。<br />让每一次真实的品尝，成为下一杯的起点。
+            </p>
+            <div class="hero-links">
+              <button class="text-link" id="jump-recipe">
+                开始调一杯 <span>↓</span></button
+              ><button class="text-link muted" data-go="profile">
+                建立我的风味基准 ↗
+              </button>
+            </div>
+          </div>
+          <div class="hero-art" aria-hidden="true">
+            <div class="art-caption">NOTES ON<br />YOUR NEXT POUR</div>
+            <svg viewBox="0 0 400 330">
+              <ellipse cx="210" cy="295" rx="110" ry="13" fill="#dcd5c6" />
+              <path
+                d="M98 74H322L219 213V278H275V285H145V278H201V213Z"
+                fill="#f8f5ea"
+                stroke="#455b4b"
+                stroke-width="2"
+              />
+              <path d="M118 99H301L210 202Z" fill="#c87536" />
+              <path d="M118 99H301L286 119H134Z" fill="#e8b05c" />
+              <path d="M105 72H317" stroke="#455b4b" stroke-width="4" />
+              <path d="M210 212V276" stroke="#a4b09c" stroke-width="3" />
+              <circle
+                cx="293"
+                cy="83"
+                r="39"
+                fill="#e8b54f"
+                stroke="#b77531"
+                stroke-width="2"
+              />
+              <circle cx="293" cy="83" r="30" fill="#f7d896" />
+              <path
+                d="M293 53V112M264 83H322M272 62L314 104M272 104L314 62"
+                stroke="#fbebbf"
+                stroke-width="3"
+              />
+              <path d="M309 42Q340 10 365 32Q348 62 309 42Z" fill="#536c48" />
+              <path
+                d="M110 235L70 245M101 247L80 264"
+                stroke="#9d7049"
+                stroke-width="1"
+              />
+              <circle cx="130" cy="163" r="2" fill="#f8f5ea" />
+              <circle cx="227" cy="129" r="3" fill="#e9bf80" />
+            </svg>
+            <div class="art-note">
+              <span>01 / 从经典出发</span><i>一点酸，一点甜，恰好是你。</i>
+            </div>
+          </div>
+        </div>
+        <div class="section-heading" id="work-heading">
+          <div>
+            <p class="eyebrow">THE MIXING DESK</p>
+            <h2>你的下一杯</h2>
+          </div>
+          <p>选择结构 → 调整配方 → 留下试饮</p>
+        </div>
+        <div class="studio-layout">
+          <aside class="panel frame-panel">
+            <div class="panel-label">01 / 选择框架</div>
+            <div id="frame-list" class="frame-list"></div>
+            <p class="footnote">
+              框架是一张地图。<br />好不好喝，留给真实的味蕾。
+            </p>
+          </aside>
+          <div class="editor-column">
+            <section class="panel frame-card">
+              <div class="frame-heading">
+                <div>
+                  <p id="frame-en" class="eyebrow"></p>
+                  <h3 id="frame-title"></h3>
+                </div>
+                <span class="tag">经典结构</span>
+              </div>
+              <div id="frame-formula" class="formula"></div>
+              <p id="frame-description"></p>
+              <button id="load-template" class="text-link">
+                填入框架示例 ↗
+              </button>
+            </section>
+            <section class="panel recipe-card">
+              <div class="panel-label">02 / 构建配方</div>
+              <label for="recipe-title">给这一杯起个名字</label
+              ><input
+                id="recipe-title"
+                maxlength="80"
+                placeholder="例如：我的第一杯 Sour"
+              /><label for="recipe"
+                >原料与用量 <span class="muted">中文 / English</span></label
+              ><textarea
+                id="recipe"
+                rows="5"
+                placeholder="金酒 45ml&#10;柠檬汁 25ml&#10;原味糖浆 20ml"
+                spellcheck="false"
+              ></textarea>
+              <p class="hint">每行一种原料；补全时可以只写名称。</p>
+              <div class="two-cols">
+                <label>制作技法<select id="method"></select></label
+                ><label
+                  >额外融水（ml）<input
+                    id="dilution"
+                    type="number"
+                    min="0"
+                    max="5000"
+                    step="0.5"
+                    placeholder="未知留空"
+                /></label>
+              </div>
+              <details>
+                <summary>材料架、排除项与调制条件</summary>
+                <label
+                  >手边原料<input
+                    id="pantry"
+                    placeholder="金酒、君度、青柠汁、苏打水"
+                    maxlength="3000" /></label
+                ><label
+                  >补全时不使用<input
+                    id="avoid"
+                    placeholder="按具体原料排除，不是过敏原检测"
+                    maxlength="1000"
+                /></label>
+                <div class="two-cols">
+                  <label
+                    >出杯温度（℃）<input
+                      id="temperature"
+                      type="number"
+                      min="-30"
+                      max="100"
+                      step="0.5"
+                      placeholder="未知留空" /></label
+                  ><label
+                    >出杯方式<select id="service">
+                      <option value="">尚未记录</option>
+                      <option value="up">无冰出杯</option>
+                      <option value="on_ice">杯中留冰</option>
+                    </select></label
+                  >
+                </div>
+                <label
+                  >产品成分、批次与有序步骤（可选 JSON）<textarea
+                    id="advanced-context"
+                    rows="3"
+                    placeholder='{"composition": [], "materials": [], "process": {"steps": []}}'
+                    spellcheck="false"
+                  ></textarea>
+                </label>
+                <p class="hint">
+                  沿用本地引擎的 context 格式。未知浓度留空，不自动填入标准值。
+                </p>
+              </details>
+              <label class="check"
+                ><input id="personalize" type="checkbox" />参考我的风味基准
+                <span class="muted" id="personal-state">登录后启用</span></label
+              >
+              <div class="actions">
+                <button class="button" id="evaluate">评价配方 ↗</button
+                ><button class="button secondary" id="complete">
+                  帮我补全
+                </button>
+              </div>
+              <button class="text-link wide" id="recommend">
+                比较 Sour 对照方案 ↗
+              </button>
+              <p class="footnote">
+                分析会发送至本站接口。保存需要登录；配方默认仅自己可见。
+              </p>
+            </section>
+          </div>
+          <aside class="result-column">
+            <section class="panel result-panel">
+              <div class="panel-label">03 / 调配建议</div>
+              <div id="result">
+                <div class="empty">
+                  <span class="empty-mark">▽</span>
+                  <h3>先给风味一个轮廓</h3>
+                  <p>
+                    填写已有配方，检查它的结构；<br />或写下原料，让框架帮你补齐。
+                  </p>
+                  <button class="text-link" id="try-sour">
+                    试试一份 Sour 示例 ↗
+                  </button>
+                </div>
+              </div>
+            </section>
+            <p class="footnote">
+              框架契合度不等于好喝分。<br />配方推荐是待验证的试配起点。
+            </p>
+          </aside>
+        </div>
+      </section>
+
+      <section id="profile" class="view" hidden>
+        <div class="page-heading">
+          <p class="eyebrow">A PORTRAIT OF YOUR PALATE</p>
+          <h1>一点一点，<span>了解自己。</span></h1>
+          <p>把想要的味道和喝到的感受分开记录，慢慢形成自己的风味基准。</p>
+        </div>
+        <div id="profile-content"></div>
+      </section>
+      <section id="community" class="view" hidden>
+        <div class="page-heading">
+          <p class="eyebrow">GOOD RECIPES, SHARED</p>
+          <h1>让好喝的一杯，<span>被更多人发现。</span></h1>
+          <p>用户主动分享的配方版本。看清多少人喝过，也看清高分从何而来。</p>
+        </div>
+        <div class="community-toolbar">
+          <div class="tabs" aria-label="酒单筛选">
+            <button id="show-all" class="active">公开配方</button
+            ><button id="show-qualified">高分入选</button>
+          </div>
+          <label class="inline-label"
+            >框架<select id="community-frame">
+              <option value="">全部框架</option>
+            </select></label
+          >
+        </div>
+        <div class="rank-note">
+          <strong>入选规则</strong
+          ><span
+            >至少 3 位非作者用户自报实际试饮、同意贡献评分，平均喜欢程度 ≥
+            7。排序分 =（评分总和 + 5 × 6）÷（人数 +
+            5）。小样本先保持谨慎。</span
+          >
+        </div>
+        <div id="community-list" class="recipe-grid"></div>
+        <p class="footnote">
+          当前展示排序靠前的 100
+          个公开版本，筛选作用于这一窗口。每个账号对同一版本只计一次，以最新记录为准。公开统计不含私人笔记。账号数不等于已核验的独立真人；当前为小规模社区试运行。
+        </p>
+      </section>
+    </main>
+    <footer>
+      <a class="brand" href="/">调酒手记 <small>COCKTAIL ATELIER</small></a
+      ><span>经典是起点，味觉是答案。</span
+      ><button class="text-link" id="privacy-button">数据与隐私</button>
+    </footer>
+    <dialog id="auth-dialog">
+      <form id="auth-form">
+        <button
+          class="close"
+          type="button"
+          data-close="auth-dialog"
+          aria-label="关闭"
+        >
+          ×
+        </button>
+        <p class="eyebrow">WELCOME TO YOUR ATELIER</p>
+        <h2 id="auth-title">欢迎回来</h2>
+        <p id="auth-copy">登录后，把每一次品尝留给下一杯。</p>
+        <label
+          >邮箱<input
+            id="auth-email"
+            type="email"
+            autocomplete="email"
+            required
+            maxlength="254" /></label
+        ><label id="password-label"
+          >密码<input
+            id="auth-password"
+            type="password"
+            autocomplete="current-password"
+            required
+            maxlength="128" /></label
+        ><button id="auth-submit" class="button wide" type="submit">
+          登录
+        </button>
+        <p id="auth-status" role="status"></p>
+        <div class="auth-links">
+          <button type="button" class="text-link" id="auth-switch">
+            还没有账号？注册</button
+          ><button type="button" class="text-link muted" id="auth-recover">
+            忘记密码
+          </button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="taste-dialog">
+      <form id="taste-form">
+        <button
+          class="close"
+          type="button"
+          data-close="taste-dialog"
+          aria-label="关闭"
+        >
+          ×
+        </button>
+        <p class="eyebrow">TASTE, THEN TAKE NOTES</p>
+        <h2 id="taste-title">记录真实试饮</h2>
+        <p class="hint">同一版本再次保存会更新你的旧记录，不增加票数。</p>
+        <label class="check"
+          ><input
+            id="actually-tasted"
+            type="checkbox"
+            required
+          />我已实际制作并试饮</label
+        ><label class="check"
+          ><input
+            id="as-recipe"
+            type="checkbox"
+            required
+          />用量、原料与此版本一致；改配方应另存版本</label
+        ><label
+          >整体喜欢程度（0–10）<input
+            id="taste-liking"
+            type="number"
+            min="0"
+            max="10"
+            step="0.5"
+            required
+            placeholder="实际喝过再打分"
+        /></label>
+        <h3>喝到了多强的风味？</h3>
+        <p class="hint">
+          0 = 没感受到，10 = 非常强。强度高不代表质量好；没评留空。
+        </p>
+        <div id="intensity-inputs" class="rating-grid"></div>
+        <details>
+          <summary>七维质量评分（可选）</summary>
+          <div id="quality-inputs" class="rating-grid"></div>
+        </details>
+        <label
+          >我的品尝笔记<textarea
+            id="taste-notes"
+            maxlength="2000"
+            rows="3"
+            placeholder="入口、中段、余韵；仅自己可见"
+          ></textarea></label
+        ><label class="check"
+          ><input
+            id="public-vote"
+            type="checkbox"
+          />若配方公开，同意将本次分数和强度计入匿名汇总</label
+        ><button class="button wide" type="submit">保存我的试饮</button>
+        <p id="taste-status" role="status"></p>
+      </form>
+    </dialog>
+    <dialog id="publish-dialog">
+      <form id="publish-form">
+        <button
+          type="button"
+          class="close"
+          data-close="publish-dialog"
+          aria-label="关闭"
+        >
+          ×
+        </button>
+        <p class="eyebrow">SHARE THIS VERSION</p>
+        <h2>把这一版放进社区酒单</h2>
+        <p>
+          公开后，任何人都可以查看这份配方、用量、调制条件和你的昵称。私人试饮笔记不会公开。
+        </p>
+        <pre id="publish-preview"></pre>
+        <label class="check"
+          ><input
+            id="publish-consent"
+            type="checkbox"
+            required
+          />我确认已检查内容，愿意公开这一版本</label
+        ><button class="button wide" type="submit">确认发布</button>
+        <p id="publish-status" role="status"></p>
+      </form>
+    </dialog>
+    <dialog id="privacy-dialog">
+      <button
+        type="button"
+        class="close"
+        data-close="privacy-dialog"
+        aria-label="关闭"
+      >
+        ×
+      </button>
+      <p class="eyebrow">YOUR DATA, YOUR CHOICE</p>
+      <h2>你的风味，先属于你。</h2>
+      <p>
+        在线版账号由 Supabase
+        管理；配方和试饮存储在独立的云端数据库，按账号隔离。本站不会读取开发者本机的书库、库存、配方或试饮库。
+      </p>
+      <p>
+        配方默认私有。发布时公开该版本的配方和调制条件、昵称；你可以撤回公开状态。试饮笔记始终私有。只有主动勾选的分数与强度会进入公开汇总，至少
+        3 人才展示均值。
+      </p>
+      <p>
+        “我的风味”支持导出自己的数据、删除自己的试饮记录、撤回配方。登录使用
+        HttpOnly Cookie；退出会清除本站会话。
+      </p>
+      <p class="hint">
+        社区分数是用户自报体验，不是已验证的味觉预测，也不证明因果关系。
+      </p>
+    </dialog>
+  </body>
+</html>

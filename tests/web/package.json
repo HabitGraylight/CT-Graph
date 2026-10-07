@@ -1,0 +1,6 @@
+{
+  "name": "ct-graph-web-tests",
+  "private": true,
+  "scripts": {"test": "node flows.mjs"},
+  "devDependencies": {"happy-dom": "20.14.5"}
+}

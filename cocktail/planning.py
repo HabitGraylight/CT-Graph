@@ -71,7 +71,9 @@ def recommend(frame='sour', recipe='', pantry='', avoid='', context=None, taster
     from .experiments import preference
     if any(i['ingredient']['id']=='water' for i in parse_items(avoid)):
         candidates=[c for c in candidates if c['id']!='water_swap']
-    personal = preference(taster,base['judge']['recipe_id'])
+    from .runtime import PUBLIC_ONLY
+    personal = ({'eligible_pairs':0,'preferred_intervention':None,'scope':'云端未接入本地 A/B 偏好'}
+                if PUBLIC_ONLY.get() else preference(taster,base['judge']['recipe_id']))
     preferred = personal['preferred_intervention']
     for candidate in candidates:
         candidate['rank_basis'] = {'unresolved_action_risks':sum(r['level']=='action' for r in candidate['evaluation']['judge']['risks']),

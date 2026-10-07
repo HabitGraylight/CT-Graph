@@ -1,5 +1,12 @@
 # Changelog / 更新记录
 
+## 2026-10-07 · Multi-user cloud application
+
+- Vercel-ready web application, stateless public advisor, Supabase email authentication and caller-scoped database access.
+- Private immutable recipe versions, personal intensity targets, actual tasting records and explicit recipe publication.
+- Opt-in community aggregation with one vote per account/version, author exclusion, minimum sample counts and transparent shrinkage ranking.
+- PostgreSQL row-level isolation tests, session/origin tests, Chinese and English deployment guides. Local personal data remains excluded.
+
 ## 2026-10-06 · Synthetic experiment observations
 
 - Synthetic plans accept explicitly simulated sensory scores with `tasted:false`; reports and observation nodes retain their synthetic provenance.

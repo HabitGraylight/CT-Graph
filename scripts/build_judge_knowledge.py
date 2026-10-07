@@ -76,12 +76,16 @@ def components_for(i):
     return sorted(c)
 
 
-def build():
+def public_knowledge():
     sources=[dict(id=id,title=title,url=url,evidence_type=kind,published=year,reviewed_at=DAY,review_after_days=365,scope=scope) for id,title,url,kind,year,scope in SOURCES]
     components=[dict(id=id,name=name,dimensions=dims,mechanism=mechanism,source_ids=refs) for id,name,dims,mechanism,refs in COMPONENTS]
     rules=[dict(id=id,title=title,requires=requires,dimensions=dims,kind=kind,effect=effect,conditions=conditions,verification=verification,source_ids=refs,numeric_score_effect=None,confidence='conditional',status='active') for id,title,requires,dims,kind,effect,conditions,verification,refs in RULES]
     profiles=[dict(ingredient_id=i['id'],name=i['zh'],component_ids=components_for(i),basis='editorial_category_inference',concentrations={},coverage='qualitative_only_not_exhaustive',note='原料类别的可能成分，未穷尽或检测具体分子。浓度、零糖/无醇版本及加工差异须查瓶标或检测；文献支持机制，不证明每个品牌的组成。',source_ids=sorted({s for c in components if c['id'] in components_for(i) for s in c['source_ids']})) for i in INGREDIENTS]
-    result=dict(schema_version=1,version='2026-09-15.1',reviewed_at=DAY,sources=sources,components=components,profiles=profiles,rules=rules)
+    return dict(schema_version=1,version='2026-09-15.1',reviewed_at=DAY,sources=sources,components=components,profiles=profiles,rules=rules)
+
+
+def build():
+    result=public_knowledge()
     path=ROOT/'data/knowledge/judge.json';path.parent.mkdir(parents=True,exist_ok=True)
     if path.exists():raise SystemExit('知识文件已存在；修改请走版本审查，不覆盖已有版本。')
     path.write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
