@@ -60,12 +60,13 @@ class handler(BaseHTTPRequestHandler):
         self.db = Supabase()
         self.out_cookies = []
         try:
-            resource = parse_qs(urlsplit(self.path).query).get('resource',['catalog'])[0]
+            query = parse_qs(urlsplit(self.path).query)
+            resource = query.get('resource',['catalog'])[0]
             if resource=='catalog':
                 with public_runtime():result=engine.catalog()
                 result['configured']=self.db.configured
             elif resource=='community':
-                result={'recipes':self.db.request('/rest/v1/rpc/community_cards','POST',{}) if self.db.configured else [],'configured':self.db.configured}
+                result=self.db.community(query)
             elif resource=='state':
                 if not self.db.configured:result={'configured':False,'user':None}
                 else:

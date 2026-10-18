@@ -29,6 +29,9 @@ const state = {
   frame: "sour",
   account: { user: null },
   community: [],
+  communityPage: 0,
+  communityMore: false,
+  communityConfigured: false,
   qualified: false,
   authMode: "login",
   taste: null,
@@ -37,6 +40,7 @@ const state = {
 };
 let noticeTimer;
 let pendingSave = null;
+let communityRequest = 0;
 
 async function api(action, body = {}) {
   const response = await fetch("/api/app", {
@@ -49,9 +53,9 @@ async function api(action, body = {}) {
   if (!response.ok) throw new Error(result.error || "请求未完成");
   return result;
 }
-async function get(resource) {
+async function get(resource, params = {}) {
   const response = await fetch(
-    "/api/app?resource=" + encodeURIComponent(resource),
+    "/api/app?" + new URLSearchParams({ resource, ...params }),
     { credentials: "same-origin", cache: "no-store" },
   );
   const result = await response.json();
@@ -385,6 +389,18 @@ function chart(target) {
       "",
     )}<text x="84" y="243">0 · 弱</text><text x="353" y="243">10 · 强</text></svg>`;
 }
+function evidenceTable(target) {
+  return `<div class="evidence-table"><table><caption>风味基准的记录依据</caption><thead><tr><th scope="col">维度</th><th scope="col">依据</th><th scope="col">有效记录</th><th scope="col">实饮范围</th></tr></thead><tbody>${Object.values(
+    target.targets,
+  )
+    .map(
+      (t) =>
+        `<tr><th scope="row">${esc(t.label)}</th><td>${esc(t.evidence)}</td><td>${esc(t.samples)} 个版本</td><td>${t.observed_range ? t.observed_range.map(esc).join("–") : "—"}</td></tr>`,
+    )
+    .join(
+      "",
+    )}</tbody></table><p class="hint">只统计喜欢程度 ≥7 且填写了该项强度的版本。范围表示这些记录的最低和最高值；不同维度的证据量可能不同。</p></div>`;
+}
 function renderProfile() {
   const a = state.account;
   if (!a.user) {
@@ -400,7 +416,7 @@ function renderProfile() {
     const b = $("baseline-frame").value
       ? a.baselines[$("baseline-frame").value]
       : a.baseline;
-    $("baseline-chart").innerHTML = chart(b);
+    $("baseline-chart").innerHTML = chart(b) + evidenceTable(b);
     $("baseline-note").textContent =
       `${b.confidence} · ${b.liked_recipes} 个喜欢的实饮版本 / ${b.tasted_recipes} 个已记录版本。均值是参考，尚未证明因果关系。`;
   };
@@ -539,17 +555,58 @@ function openPublish(recipe) {
     JSON.stringify(recipe.context, null, 2);
   $("publish-dialog").showModal();
 }
-async function refreshCommunity() {
-  const result = await get("community");
-  state.community = result.recipes;
-  renderCommunity();
+async function refreshCommunity(page = 0) {
+  const request = ++communityRequest;
+  state.community = [];
+  state.communityPage = page;
+  state.communityMore = false;
+  $("community-list").setAttribute("aria-busy", "true");
+  $("community-list").innerHTML = '<p class="hint">正在读取符合条件的配方…</p>';
+  $("community-page").textContent = "读取中…";
+  $("community-prev").disabled = true;
+  $("community-next").disabled = true;
+  try {
+    const result = await get("community", {
+      frame: $("community-frame").value,
+      qualified: String(state.qualified),
+      page: String(page),
+    });
+    // A slow response must not overwrite a newer filter selection.
+    if (request !== communityRequest) return;
+    state.community = result.recipes;
+    state.communityConfigured = result.configured;
+    state.communityPage = result.page;
+    state.communityMore = result.has_more;
+    renderCommunity();
+    $("community-page").textContent = result.configured
+      ? `第 ${page + 1} 页 · 本页 ${result.recipes.length} 个版本`
+      : "连接 Supabase 后即可浏览社区配方";
+  } catch (error) {
+    if (request !== communityRequest) return;
+    $("community-list").innerHTML =
+      '<div class="empty-wide"><h3>这次没能读到酒单</h3><p>请稍后重试，你的筛选条件已保留。</p><button id="community-retry" class="button secondary">重新读取</button></div>';
+    $("community-retry").onclick = () => requestCommunity(page);
+    $("community-page").textContent = `第 ${page + 1} 页 · 读取失败`;
+    throw error;
+  } finally {
+    if (request === communityRequest) {
+      $("community-list").setAttribute("aria-busy", "false");
+      $("community-prev").disabled = page === 0;
+      $("community-next").disabled = !state.communityMore;
+    }
+  }
+}
+function requestCommunity(page = 0) {
+  refreshCommunity(page).catch((e) => notify(e.message, true));
 }
 function renderCommunity() {
-  const selected = $("community-frame").value;
-  const rows = state.community.filter(
-    (r) =>
-      (!selected || r.frame === selected) && (!state.qualified || r.qualified),
-  );
+  if (!state.communityConfigured) {
+    $("community-list").innerHTML =
+      '<div class="empty-wide"><span class="empty-mark">◒</span><h3>社区酒单尚未连接</h3><p>连接 Supabase 后，这里会显示用户主动公开的配方和真实试饮汇总。现在可以先体验调配工作台。</p><button class="text-link" id="community-start">去调配工作台 ↗</button></div>';
+    $("community-start").onclick = () => go("studio");
+    return;
+  }
+  const rows = state.community;
   $("community-list").innerHTML = rows.length
     ? rows
         .map(
@@ -566,7 +623,7 @@ function renderCommunity() {
               )}</details><div class="tile-footer"><button class="text-link" data-community-load="${esc(r.id)}">载入工作台 ↗</button><button class="text-link" data-community-taste="${esc(r.id)}">我做过，记一次试饮</button></div></article>`,
         )
         .join("")
-    : `<div class="empty-wide"><span class="empty-mark">◒</span><h3>${state.qualified ? "好配方，需要真实的回声" : "社区的第一杯，等你来分享"}</h3><p>${state.qualified ? "还没有达到入选门槛的配方。新社区不会预置虚构评分。" : "先在工作台保存私有版本，确认内容后再发布到这里。"}</p><button class="text-link" id="community-start">去调配工作台 ↗</button></div>`;
+    : `<div class="empty-wide"><span class="empty-mark">◒</span><h3>${state.communityPage ? "这一页暂时没有配方" : state.qualified ? "好配方，需要真实的回声" : "当前条件下还没有公开配方"}</h3><p>${state.communityPage ? "酒单可能已更新，可返回上一页或重新选择筛选条件。" : state.qualified ? "当前框架下还没有达到入选门槛的配方。新社区不会预置虚构评分。" : "试试其他框架，或先保存私有版本，确认内容后再发布。"}</p><button class="text-link" id="community-start">去调配工作台 ↗</button></div>`;
   $("community-start")?.addEventListener("click", () => go("studio"));
   $("community-list")
     .querySelectorAll("[data-community-load]")
@@ -678,15 +735,18 @@ $("show-all").onclick = () => {
   state.qualified = false;
   $("show-all").classList.add("active");
   $("show-qualified").classList.remove("active");
-  renderCommunity();
+  requestCommunity();
 };
 $("show-qualified").onclick = () => {
   state.qualified = true;
   $("show-qualified").classList.add("active");
   $("show-all").classList.remove("active");
-  renderCommunity();
+  requestCommunity();
 };
-$("community-frame").onchange = renderCommunity;
+$("community-frame").onchange = () => requestCommunity();
+$("community-prev").onclick = () =>
+  requestCommunity(Math.max(0, state.communityPage - 1));
+$("community-next").onclick = () => requestCommunity(state.communityPage + 1);
 
 async function start() {
   // Remove email-link credentials from the URL before rendering or other requests.

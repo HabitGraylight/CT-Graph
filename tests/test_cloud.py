@@ -8,7 +8,7 @@ from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 from api.app import handler
 from cloud.preferences import baseline, personalize
-from cloud.service import ApiError, advise, private_action
+from cloud.service import ApiError, Supabase, advise, private_action
 from cocktail import engine
 from cocktail.runtime import public_runtime
 
@@ -50,6 +50,52 @@ class CloudEngineTests(unittest.TestCase):
         less=advise('complete',{'frame':'sour','recipe':'gin 45 ml, lemon juice 25 ml, simple syrup'},low,[])
         ordinary=advise('complete',{'frame':'sour','recipe':'gin 45 ml, lemon juice 25 ml, simple syrup'})
         self.assertLess(less['recipe'][2]['amount'],ordinary['recipe'][2]['amount'])
+
+    def test_baseline_evidence_is_dimension_specific(self):
+        rows=[{'frame':'sour','liking':8,'intensities':{}} for _ in range(3)]
+        target=baseline({},rows,'sour')
+        self.assertEqual(target['ready_dimensions'],0)
+        self.assertFalse(target['targets']['sweet']['ready'])
+        for row in rows:row['intensities']['sweet']=2
+        rows[0]['intensities']['aroma']=0
+        target=baseline({},rows,'sour')
+        self.assertEqual(target['ready_dimensions'],1)
+        self.assertEqual(target['targets']['sweet']['observed_range'],[2,2])
+        self.assertEqual(target['targets']['aroma']['observed_range'],[0,0])
+        self.assertFalse(target['targets']['aroma']['ready'])
+        self.assertIsNone(target['targets']['body']['observed_range'])
+
+    def test_sparse_observations_do_not_automatically_reduce_syrup(self):
+        row={'frame':'sour','liking':8,'intensities':{'sweet':2}}
+        rec={'candidates':[{'id':'reference'},{'id':'less_syrup'}]}
+        self.assertEqual(personalize(dict(rec),baseline({},[row],'sour'))['suggested_trial'],'reference')
+        self.assertEqual(personalize(dict(rec),baseline({},[row]*3,'sour'))['suggested_trial'],'less_syrup')
+        self.assertEqual(personalize(dict(rec),baseline({'preferences':{'sweet':0}},[],'sour'))['suggested_trial'],'less_syrup')
+        body={'frame':'sour','recipe':'gin 45 ml, lemon juice 25 ml, simple syrup'}
+        sparse=advise('complete',body,{},[row])
+        ordinary=advise('complete',body)
+        self.assertEqual(sparse['recipe'],ordinary['recipe'])
+
+    @patch.dict('os.environ',{'APP_ORIGIN':'https://synthetic.example','SUPABASE_URL':'https://synthetic.supabase.co','SUPABASE_PUBLISHABLE_KEY':'synthetic-placeholder'},clear=True)
+    def test_community_filters_and_lookahead_pass_to_database(self):
+        from unittest.mock import Mock
+        db=Supabase();db.request=Mock(return_value=[{'id':i} for i in range(21)])
+        page=db.community({'frame':['sour'],'qualified':['true'],'page':['5']})
+        self.assertEqual(db.request.call_args.args[2],{'p_frame':'sour','p_qualified':True,'p_offset':100,'p_limit':21})
+        self.assertEqual(len(page['recipes']),20)
+        self.assertTrue(page['has_more'])
+        db.request.return_value=[]
+        self.assertFalse(db.community({})['has_more'])
+        for query in ({'page':['-1']},{'page':['100001']},{'page':['NaN']},{'page':['9'*100]},
+                      {'page':['١']},{'frame':['bad']},{'qualified':['yes']}):
+            with self.subTest(query=query),self.assertRaises(ApiError):db.community(query)
+
+    def test_visibility_missing_record_does_not_report_success(self):
+        from unittest.mock import Mock
+        db=Mock();db.request.return_value=[]
+        with self.assertRaises(ApiError) as error:
+            private_action(db,'visibility',{'id':'20000000-0000-4000-8000-000000000001','visibility':'private'},{'id':'verified-id'},'jwt')
+        self.assertEqual(error.exception.status,404)
 
     def test_cloud_write_uses_authenticated_identity(self):
         from unittest.mock import Mock

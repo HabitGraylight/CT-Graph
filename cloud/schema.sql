@@ -103,12 +103,21 @@ grant select, insert, update, delete on public.profiles, public.recipes, public.
 
 -- Only opt-in votes on public versions, no author self-votes, one row per voter/version.
 -- Fewer than 3 voters: no individual score or intensity is disclosed.
-create function public.community_cards()
+create or replace function public.community_cards(
+  p_frame text default null, p_qualified boolean default false,
+  p_offset integer default 0, p_limit integer default 100
+)
 returns table (
   id uuid, title text, frame text, method text, recipe text, context jsonb,
   author text, created_at timestamptz, voters bigint, average_liking numeric,
   ranking_score numeric, qualified boolean, intensities jsonb
-) language sql stable security definer set search_path = '' as $$
+) language plpgsql stable security definer set search_path = '' as $$
+begin
+  if p_offset is null or p_offset<0 or p_offset>2000000
+     or p_limit is null or p_limit<1 or p_limit>100 or p_qualified is null then
+    raise exception 'Invalid pagination';
+  end if;
+  return query
   select r.id,r.title,r.frame,r.method,r.recipe,r.context,
     coalesce(p.display_name,'调酒同好'),r.created_at,count(t.id),
     case when count(t.id)>=3 then round(avg(t.liking),2) end,
@@ -125,15 +134,17 @@ returns table (
   from public.recipes r
   left join public.profiles p on p.user_id=r.owner_id
   left join public.tastings t on t.recipe_id=r.id and t.public_vote and t.user_id<>r.owner_id
-  where r.visibility='public'
+  where r.visibility='public' and (p_frame is null or r.frame=p_frame)
   group by r.id,p.display_name
+  having not p_qualified or (count(t.id)>=3 and coalesce(avg(t.liking),0)>=7)
   order by (count(t.id)>=3 and coalesce(avg(t.liking),0)>=7) desc,
     case when count(t.id)>=3 then (sum(t.liking)+30)/(count(t.id)+5) end desc nulls last,
-    r.created_at desc
-  limit 100;
+    r.created_at desc, r.id desc
+  limit p_limit offset p_offset;
+end;
 $$;
-revoke all on function public.community_cards() from public;
-grant execute on function public.community_cards() to anon, authenticated;
+revoke all on function public.community_cards(text,boolean,integer,integer) from public;
+grant execute on function public.community_cards(text,boolean,integer,integer) to anon, authenticated;
 revoke all on function public.touch_owned_record(), public.immutable_recipe() from public;
 revoke all on function public.valid_score_map(jsonb,text[]) from public;
 grant execute on function public.valid_score_map(jsonb,text[]) to authenticated;

@@ -17,6 +17,7 @@
     "README.md",
     "api/app.py",
     "cloud/__init__.py",
+    "cloud/migrations/20261018_community_pagination.sql",
     "cloud/preferences.py",
     "cloud/schema.sql",
     "cloud/service.py",

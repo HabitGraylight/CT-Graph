@@ -7,7 +7,7 @@ from urllib.parse import urlencode, urlsplit
 from urllib.request import Request, urlopen
 from cocktail import engine, planning
 from cocktail.runtime import public_runtime
-from .preferences import baseline, personalize
+from .preferences import baseline, personalize, low_sweet_target
 
 
 class ApiError(Exception):
@@ -56,7 +56,7 @@ class Supabase:
             if path.startswith('/auth/'):
                 raise ApiError('认证未完成：请检查邮箱确认、密码或链接是否过期。')
             if e.code == 409:raise ApiError('记录已存在，请刷新后重试。', 409)
-            raise ApiError('数据库未接受请求，请检查输入或是否已执行建表脚本。', 400 if e.code<500 else 502)
+            raise ApiError('数据库未接受请求，请检查输入或部署/升级脚本是否已执行。', 400 if e.code<500 else 502)
         except (URLError, TimeoutError):raise ApiError('暂时无法连接账号服务，请稍后重试。', 502)
 
     def user(self, token):
@@ -68,6 +68,22 @@ class Supabase:
     def profile(self, uid, token):
         rows = self.request('/rest/v1/profiles?'+urlencode({'user_id':'eq.'+uid,'select':'display_name,preferences'}), token=token)
         return rows[0] if rows else {'display_name':'调酒同好','preferences':{}}
+
+    def community(self, query):
+        frame = query.get('frame',[''])[0]
+        qualified = query.get('qualified',['false'])[0]
+        page = query.get('page',['0'])[0]
+        if frame and frame not in engine.FRAMES:raise ApiError('框架无效')
+        if qualified not in {'true','false'}:raise ApiError('筛选条件无效')
+        if not isinstance(page,str) or not page.isascii() or not page.isdecimal() or len(page)>7:
+            raise ApiError('页码无效')
+        page = int(page)
+        if page>100000:raise ApiError('页码超出范围')
+        size = 20
+        rows = self.request('/rest/v1/rpc/community_cards','POST',{
+            'p_frame':frame or None,'p_qualified':qualified=='true','p_offset':page*size,'p_limit':size+1,
+        }) if self.configured else []
+        return {'configured':self.configured,'recipes':rows[:size],'page':page,'page_size':size,'has_more':len(rows)>size}
 
     def state(self, user, token):
         uid = user['id']
@@ -92,11 +108,12 @@ def advise(action, body, profile=None, tastings=None):
         target = baseline(profile,tastings or [],frame)
         if action == 'complete':
             # A low target changes only the unspecified syrup slot. Existing amounts stay intact.
-            sweet = target['targets']['sweet']['value']
-            preference = 'drier' if sweet is not None and sweet<=4 else 'balanced'
+            preference = 'drier' if low_sweet_target(target) else 'balanced'
             result = engine.complete(frame,recipe,preference=preference,**args)
             result['baseline'] = target
             result['personal_note'] = '甜感目标较低，未填写的糖浆槽位采用少糖浆试配起点；已有用量保持。' if preference=='drier' else '按均衡框架补齐；已有用量保持。'
+            sweet = target['targets']['sweet']
+            result['personal_note'] += f" 甜感依据：{sweet['basis']}，{sweet['samples']} 个喜欢的版本有甜感记录。"
             return result
         if action == 'recommend':
             return personalize(planning.recommend(frame=frame,recipe=recipe,method=method,**args),target)
@@ -129,8 +146,10 @@ def private_action(db, action, body, user, token):
         visibility = body.get('visibility')
         if visibility not in {'private','public'}:raise ApiError('发布状态无效')
         if visibility=='public' and body.get('consent') is not True:raise ApiError('请确认公开这一版本的配方和调制条件。')
-        return db.request('/rest/v1/recipes?'+urlencode({'id':'eq.'+identifier(body.get('id')),'owner_id':'eq.'+uid}),
+        rows = db.request('/rest/v1/recipes?'+urlencode({'id':'eq.'+identifier(body.get('id')),'owner_id':'eq.'+uid}),
                           'PATCH',{'visibility':visibility},token,'return=representation')
+        if not rows:raise ApiError('配方不存在或不属于当前账号，请刷新后重试。',404)
+        return rows
     if action == 'taste':
         if body.get('data_kind','real')!='real' or body.get('tasted') is not True or body.get('as_recipe') is not True:
             raise ApiError('只接受实际制作并按该版本用量试饮的记录；改配方请先另存版本。')

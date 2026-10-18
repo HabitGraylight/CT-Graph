@@ -133,3 +133,7 @@
 !/tests/web/package.json
 !/tests/web/package-lock.json
 !/tests/web/flows.mjs
+
+!/cloud/migrations/
+/cloud/migrations/*
+!/cloud/migrations/20261018_community_pagination.sql

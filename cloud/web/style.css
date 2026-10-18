@@ -676,6 +676,34 @@ pre {
   gap: 20px;
   align-items: center;
 }
+.community-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 24px 0;
+  font-size: 13px;
+}
+.evidence-table {
+  overflow-x: auto;
+}
+.evidence-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.evidence-table caption {
+  text-align: left;
+  font-weight: 600;
+  padding: 12px 0;
+}
+.evidence-table th,
+.evidence-table td {
+  text-align: left;
+  padding: 9px 5px;
+  border-bottom: 1px solid var(--line);
+}
 .tabs {
   display: flex;
   gap: 18px;

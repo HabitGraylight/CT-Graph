@@ -13,9 +13,10 @@ with public_runtime():
 assert.equal(py.status,0,py.stderr);
 const fixture=JSON.parse(py.stdout);fixture.catalog.configured=true;
 const names={sweet:'甜感',sour:'酸感',bitter:'苦感',strength:'酒精感',body:'厚重感',aroma:'香气强度'};
-const target={liked_recipes:0,tasted_recipes:0,confidence:'待积累实饮',method:'Synthetic test',targets:Object.fromEntries(Object.entries(names).map(([k,label])=>[k,{label,value:null}]))};
+const target={liked_recipes:0,tasted_recipes:0,confidence:'待补充风味强度记录',method:'Synthetic test',targets:Object.fromEntries(Object.entries(names).map(([k,label])=>[k,{label,value:null,samples:0,evidence:'未记录',observed_range:null}]))};
 const account={configured:true,user:{id:'synthetic-user',email:'person@example.invalid'},profile:{display_name:'Synthetic',preferences:{}},recipes:[],tastings:[],baseline:target,baselines:Object.fromEntries(fixture.catalog.frameworks.map(f=>[f.id,target]))};
 const calls=[];let signedIn=false;
+let communityRows=null, communityTransport=null;
 const w=new Window({url:'https://synthetic.example/',settings:{disableJavaScriptFileLoading:true,disableCSSFileLoading:true}});
 const errors=[];w.addEventListener('error',e=>errors.push(e.message));
 w.HTMLElement.prototype.scrollIntoView=function(){};
@@ -24,7 +25,14 @@ w.fetch=async(url,options={})=>{
   calls.push({url,body});let result;
   if(url.includes('resource=catalog'))result=fixture.catalog;
   else if(url.includes('resource=state'))result=signedIn?account:{configured:true,user:null};
-  else if(url.includes('resource=community'))result={configured:true,recipes:account.recipes.filter(r=>r.visibility==='public').map(r=>({...r,author:'Synthetic',voters:0,average_liking:null,ranking_score:null,qualified:false,intensities:{}}))};
+  else if(url.includes('resource=community')) {
+    if(communityTransport)return communityTransport(url);
+    const query=new URL(url,'https://synthetic.example').searchParams;
+    const frame=query.get('frame'), qualified=query.get('qualified')==='true', page=Number(query.get('page')||0);
+    const rows=(communityRows||account.recipes.filter(r=>r.visibility==='public').map(r=>({...r,author:'Synthetic',voters:0,average_liking:null,ranking_score:null,qualified:false,intensities:{}})))
+      .filter(r=>(!frame||r.frame===frame)&&(!qualified||r.qualified));
+    result={configured:true,recipes:rows.slice(page*20,page*20+20),page,page_size:20,has_more:rows.length>(page+1)*20};
+  }
   else if(body.action==='login'){signedIn=true;result={message:'登录成功'};}
   else if(body.action==='logout'){signedIn=false;result={message:'已退出'};}
   else if(body.action==='evaluate')result=fixture.evaluate;
@@ -59,6 +67,7 @@ $('auth-email').value='person@example.invalid';$('auth-password').value='synthet
 ok(!$('personalize').disabled,'Signed-in preferences enabled');
 $('account-button').click();await flush();
 ok($('profile-chart')===null&&w.document.querySelector('svg.profile-chart'),'Baseline chart rendered');
+ok(w.document.querySelectorAll('.evidence-table tbody tr').length===6 && $('baseline-chart').textContent.includes('未记录'),'Per-dimension evidence visible without invented observations');
 $('baseline-frame').value='sour';$('baseline-frame').dispatchEvent(new w.Event('change'));ok($('baseline-note').textContent.includes('0 个'),'Frame-specific empty baseline explicit');
 $('pref-sweet').value='0';submit('profile-form');await flush();
 ok(calls.findLast(c=>c.body?.action==='profile').body.preferences.sweet===0,'Zero preference is preserved');
@@ -75,7 +84,28 @@ $('publish-consent').checked=true;submit('publish-form');await flush();
 ok(calls.findLast(c=>c.body?.action==='visibility').body.consent===true,'Publication requires explicit consent');
 w.document.querySelector('[data-view="community"]').click();await flush();
 ok($('community-list').textContent.includes('不足 3 位'),'Small sample has no manufactured mean');
-$('show-qualified').click();ok($('community-list').textContent.includes('还没有达到'),'Qualified-only filter has truthful empty state');
+$('show-qualified').click();await flush();ok($('community-list').textContent.includes('还没有达到'),'Qualified-only filter has truthful empty state');
+ok(new URL(calls.at(-1).url,'https://synthetic.example').searchParams.get('qualified')==='true','Qualification filtering sent to server');
+communityRows=Array.from({length:41},(_,i)=>({...account.recipes[0],id:'synthetic-public-'+i,title:'Synthetic page '+i,frame:i<21?'sour':'highball',author:'Synthetic',voters:0,average_liking:null,qualified:false,intensities:{}}));
+$('show-all').click();await flush();
+ok(w.document.querySelectorAll('[data-community-load]').length===20 && !$('community-next').disabled,'First page displays 20 and enables next');
+$('community-next').click();await flush();
+ok($('community-page').textContent.includes('第 2 页') && !$('community-prev').disabled,'Next page loads and previous enabled');
+$('community-frame').value='highball';$('community-frame').dispatchEvent(new w.Event('change'));await flush();
+ok($('community-page').textContent.includes('第 1 页') && $('community-next').disabled && $('community-prev').disabled,'Changing framework resets page; final page disables next');
+const pending=[];
+communityTransport=()=>new Promise((resolve,reject)=>pending.push({resolve,reject}));
+$('community-frame').value='sour';$('community-frame').dispatchEvent(new w.Event('change'));
+$('community-frame').value='martini';$('community-frame').dispatchEvent(new w.Event('change'));
+const response=title=>({ok:true,json:async()=>({configured:true,recipes:[{...communityRows[0],title}],page:0,has_more:false})});
+pending[1].resolve(response('Synthetic newest result'));await flush();
+pending[0].resolve(response('Synthetic stale result'));await flush();
+ok($('community-list').textContent.includes('newest result')&&!$('community-list').textContent.includes('stale result'),'Out-of-order responses cannot overwrite current filters');
+communityTransport=async()=>{throw new Error('Synthetic connection failure');};
+$('community-frame').dispatchEvent(new w.Event('change'));await flush();
+ok($('community-retry') && !$('community-list').textContent.includes('newest result') && $('community-next').disabled,'Failed query clears stale results and offers retry');
+communityTransport=null;$('community-retry').click();await flush();
+ok(!$('community-retry') && $('community-list').getAttribute('aria-busy')==='false','Retry completes and clears loading state');
 w.document.querySelector('[data-view="profile"]').click();$('logout').click();await flush();
 ok($('profile-content').textContent.includes('还差一个开始'),'Logout removes private UI');
 ok($('recipe').value===''&&$('recipe-title').value==='','Logout clears private workbench drafts');

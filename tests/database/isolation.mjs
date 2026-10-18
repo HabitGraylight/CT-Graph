@@ -73,5 +73,35 @@ await asUser(A,"update public.recipes set visibility='private' where id=$1",[R])
 ok((await asUser(null,'select * from public.community_cards()')).length===0,'Recipe withdrawal removes public result');
 ok((await asUser(B,'select * from public.recipes')).length===0,'Withdrawal removes public detail');
 ok((await asUser(B,'delete from public.tastings returning id')).length===1,'Can delete own tasting after withdrawal');
+// More than the old 100-row window; an older minority framework must still be found.
+await asUser(A,`insert into public.recipes(id,title,frame,recipe,created_at)
+  select md5('synthetic-page-'||n)::uuid,'Synthetic page '||n,'highball','gin 30 ml','2020-01-01'::timestamptz
+  from generate_series(1,110) n`);
+const minority='30000000-0000-4000-8000-000000000001';
+await asUser(A,"insert into public.recipes(id,title,frame,recipe,created_at) values ($1,'Synthetic minority','martini','gin 30 ml','1980-01-01')",[minority]);
+await asUser(A,"update public.recipes set visibility='public' where id<>$1",[R]);
+ok(!(await asUser(null,'select * from public.community_cards()')).some(r=>r.id===minority),'Fixture falls beyond original 100-row window');
+ok((await asUser(null,"select * from public.community_cards('martini',false,0,20)"))[0].id===minority,'Framework filtering precedes limit');
+const ids=[];
+for(let offset=0;offset<120;offset+=20)ids.push(...(await asUser(null,'select * from public.community_cards(null,false,$1,20)',[offset])).map(r=>r.id));
+ok(ids.length===111 && new Set(ids).size===111,'Stable tied ordering gives every public version exactly once');
+ok(!ids.includes(R),'Pagination never exposes private recipe');
+ok((await asUser(null,'select * from public.community_cards(null,false,120,20)')).length===0,'Past last page is empty');
+await denied(null,'select * from public.community_cards(null,false,-1,20)');
+await denied(null,'select * from public.community_cards(null,false,0,101)');
+await denied(null,'select * from public.community_cards(null,false,0,null)');
+await asUser(A,"update public.recipes set visibility='public' where id=$1",[R]);
+await asUser(B,'insert into public.tastings(recipe_id,tasted,as_recipe,liking,public_vote) values ($1,true,true,9,true)',[R]);
+await asUser(D,'update public.tastings set public_vote=true');
+const qualified=await asUser(null,'select * from public.community_cards(null,true,0,20)');
+ok(qualified.length===1 && qualified[0].id===R,'Qualified filter applied by database');
+// Exercise replacing the previous no-argument RPC without touching existing records.
+await db.exec('create function public.community_cards() returns integer language sql as $$select 1$$;');
+const migration=await readFile(new URL('../../cloud/migrations/20261018_community_pagination.sql',import.meta.url),'utf8');
+await db.exec(migration);
+await db.exec(migration);
+ok(Number((await db.query('select count(*) n from public.recipes')).rows[0].n)===112,'Migration reruns preserve stored recipes');
+ok((await asUser(null,'select * from public.community_cards(null,true,0,20)'))[0].id===R,'Migration retains voting behavior and anonymous grant');
+ok((await db.query("select count(*) n from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='community_cards'")).rows[0].n===1,'Legacy overload removed for unambiguous RPC routing');
 await db.close();
 console.log(`PASS: ${count} database assertions; synthetic users only; actual PostgreSQL RLS and triggers.`);

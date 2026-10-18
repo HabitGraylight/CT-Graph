@@ -279,9 +279,18 @@
           >
         </div>
         <div id="community-list" class="recipe-grid"></div>
+        <nav class="community-pager" aria-label="社区酒单分页">
+          <button id="community-prev" class="button secondary" disabled>
+            上一页
+          </button>
+          <span id="community-page" role="status" aria-live="polite"></span>
+          <button id="community-next" class="button secondary" disabled>
+            下一页
+          </button>
+        </nav>
         <p class="footnote">
-          当前展示排序靠前的 100
-          个公开版本，筛选作用于这一窗口。每个账号对同一版本只计一次，以最新记录为准。公开统计不含私人笔记。账号数不等于已核验的独立真人；当前为小规模社区试运行。
+          先按框架和入选条件筛选全部公开版本，再按排名分页，每页最多 20
+          个。新评分或撤回发布会改变实时排名，跨页浏览时可能有位置变化。每个账号对同一版本只计一次，以最新记录为准。公开统计不含私人笔记。账号数不等于已核验的独立真人；当前为小规模社区试运行。
         </p>
       </section>
     </main>
